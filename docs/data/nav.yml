@@ -1,0 +1,10 @@
+side_nav_title: Docs
+nav_links:
+  - link_title: GitHub
+    link_url: https://github.com/cloudcannon/toolproof
+    link_label: Local
+    link_icon_path: /github.svg
+logo:
+  logo_heading: Toolproof
+  logo_image: /toolproof.svg
+  logo_image_dark: /toolproof-dark.svg

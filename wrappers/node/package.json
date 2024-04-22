@@ -1,0 +1,30 @@
+{
+  "name": "toolproof",
+  "version": "0.0.0",
+  "description": "In the works",
+  "bin": "lib/index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CloudCannon/toolproof"
+  },
+  "author": "CloudCannon",
+  "license": "MIT",
+  "optionalDependencies": {
+    "@toolproof/linux-x64": "0.0.0",
+    "@toolproof/linux-arm64": "0.0.0",
+    "@toolproof/darwin-x64": "0.0.0",
+    "@toolproof/darwin-arm64": "0.0.0",
+    "@toolproof/windows-x64": "0.0.0"
+  },
+  "keywords": [
+    "flat",
+    "git",
+    "data lake",
+    "static",
+    "api"
+  ],
+  "bugs": {
+    "url": "https://github.com/CloudCannon/toolproof/issues"
+  },
+  "homepage": "https://github.com/CloudCannon/toolproof#readme"
+}

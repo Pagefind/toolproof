@@ -1,0 +1,103 @@
+name: Browser JS can use convenience selectors
+
+steps:
+  - step: I have a "my_test.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Inner passing test
+
+      steps:
+        - I have a "public/index.html" file with the content "<p>Hello World</p>"
+        - I serve the directory "public"
+        - In my browser, I load "/"
+        - step: In my browser, I evaluate {js}
+          js: |-
+            setTimeout(() => {
+              let p = document.querySelector("p");
+              p.insertAdjacentHTML("beforeEnd", "<span>added</span>");
+            }, 300);
+
+            let span = await toolproof.querySelector("span");
+            toolproof.assert_eq(span.innerText, "added");
+  - I run "%toolproof_path%"
+  - step: "stdout should contain 'Passing tests: 1'"
+  - step: "stdout should contain 'Failing tests: 0'"
+  - step: "stdout should contain 'All tests passed'"
+  - stderr should be empty
+  - step: I have a "my_test.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Inner passing test
+
+      steps:
+        - I have a "public/index.html" file with the content "<p>Hello World</p>"
+        - I serve the directory "public"
+        - In my browser, I load "/"
+        - step: In my browser, I evaluate {js}
+          js: |-
+            setTimeout(() => {
+              let p = document.querySelector("p");
+              p.insertAdjacentHTML("beforeEnd", "<span>added</span>");
+              p.insertAdjacentHTML("beforeEnd", "<span>added</span>");
+              p.insertAdjacentHTML("beforeEnd", "<span>added</span>");
+            }, 300);
+
+            let spans = await toolproof.querySelectorAll("span");
+            toolproof.assert_eq(spans.length, 3);
+  - I run "%toolproof_path%"
+  - step: "stdout should contain 'Passing tests: 1'"
+  - step: "stdout should contain 'Failing tests: 0'"
+  - step: "stdout should contain 'All tests passed'"
+  - stderr should be empty
+  - step: I have a "my_test.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Inner failing test
+
+      steps:
+        - I have a "public/index.html" file with the content "<p>Hello World</p>"
+        - I serve the directory "public"
+        - In my browser, I load "/"
+        - step: In my browser, I evaluate {js}
+          js: |-
+            setTimeout(() => {
+              let p = document.querySelector("p");
+              p.insertAdjacentHTML("beforeEnd", "<span>added</span>");
+            }, 500);
+
+            let span = await toolproof.querySelector("span", 250);
+            toolproof.assert_eq(span.innerText, "added");
+  - I run "%toolproof_path% --porcelain" and expect it to fail
+  - step: "stdout should contain 'Passing tests: 0'"
+  - step: "stdout should contain 'Failing tests: 1'"
+  - step: "stdout should contain 'Some tests failed'"
+  - stderr should be empty
+  - snapshot: stdout
+    snapshot_content: |-
+      ╎
+      ╎Running tests
+      ╎
+      ╎✘ Inner failing test
+      ╎--- STEPS ---
+      ╎✓ I have a "public/index.html" file with the content "<p>Hello World</p>"
+      ╎✓ I serve the directory "public"
+      ╎✓ In my browser, I load "/"
+      ╎✘ In my browser, I evaluate {js}
+      ╎--- ERROR ---
+      ╎Error in step "In my browser, I evaluate {js}":
+      ╎js: |-
+      ╎  setTimeout(() => {
+      ╎    let p = document.querySelector("p");
+      ╎    p.insertAdjacentHTML("beforeEnd", "<span>added</span>");
+      ╎  }, 500);
+      ╎
+      ╎  let span = await toolproof.querySelector("span", 250);
+      ╎  toolproof.assert_eq(span.innerText, "added");
+      ╎--
+      ╎Failed assertion: Error: querySelector timed out at 250ms, no elements matching "span"
+      ╎browser console:
+      ╎
+      ╎
+      ╎Finished running tests
+      ╎
+      ╎Passing tests: 0
+      ╎Failing tests: 1
+      ╎
+      ╎Some tests failed

@@ -1,0 +1,34 @@
+name: Snapshots will snapshot files
+
+steps:
+  - step: I have a "my_test.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Inner passing snapshot test
+
+      steps:
+        - step: I have a "file.pretty" file with the content {text}
+          text: |-
+            Hello!
+              World!
+                Pretty!
+                  Text!
+        - snapshot: The file "file.pretty"
+          snapshot_content: |-
+            ╎Hello!
+            ╎  World!
+            ╎    Pretty!
+            ╎      Text!
+  - I run "%toolproof_path% --porcelain"
+  - snapshot: stdout
+    snapshot_content: |-
+      ╎
+      ╎Running tests
+      ╎
+      ╎✓ Inner passing snapshot test
+      ╎
+      ╎Finished running tests
+      ╎
+      ╎Passing tests: 1
+      ╎Failing tests: 0
+      ╎
+      ╎All tests passed

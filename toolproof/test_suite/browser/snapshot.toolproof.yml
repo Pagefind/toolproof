@@ -1,0 +1,51 @@
+name: Browser JS can return a snapshot
+
+steps:
+  - step: I have a "my_test.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Inner passing test
+
+      steps:
+        - I have a "public/index.html" file with the content "<p>Hello World</p>"
+        - I serve the directory "public"
+        - In my browser, I load "/"
+        - step: In my browser, I evaluate {js}
+          js: |-
+            let p = document.querySelector("p");
+            toolproof.assert_eq(p.innerText, "Hello World");
+            p.innerText = "New innards";
+        - snapshot: In my browser, the result of {js}
+          js: |-
+            let p = document.querySelector("p");
+            return p.innerText;
+          snapshot_content: |-
+            ╎New innards
+  - I run "%toolproof_path%"
+  - step: "stdout should contain 'Passing tests: 1'"
+  - step: "stdout should contain 'Failing tests: 0'"
+  - step: "stdout should contain 'All tests passed'"
+  - stderr should be empty
+  - step: I have a "my_test.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Inner failing test
+
+      steps:
+        - I have a "public/index.html" file with the content "<p>Hello World</p>"
+        - I serve the directory "public"
+        - In my browser, I load "/"
+        - step: In my browser, I evaluate {js}
+          js: |-
+            let p = document.querySelector("p");
+            toolproof.assert_eq(p.innerText, "Hello World");
+            p.innerText = "New innards";
+        - snapshot: In my browser, the result of {js}
+          js: |-
+            let p = document.querySelector("p");
+            return p.innerText;
+          snapshot_content: |-
+            ╎Hello World
+  - I run "%toolproof_path%" and expect it to fail
+  - step: "stdout should contain 'Passing tests: 0'"
+  - step: "stdout should contain 'Failing tests: 1'"
+  - step: "stdout should contain 'Some tests failed'"
+  - stderr should be empty

@@ -1,0 +1,65 @@
+name: Snapshots will snapshot
+
+steps:
+  - step: I have a "my_test.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Inner passing snapshot test
+
+      steps:
+        - I run 'echo "Aenean eu leo quam"'
+        - snapshot: stdout
+          snapshot_content: |-
+            ╎Aenean eu leo quam
+  - I run "%toolproof_path% --porcelain"
+  - snapshot: stdout
+    snapshot_content: |-
+      ╎
+      ╎Running tests
+      ╎
+      ╎✓ Inner passing snapshot test
+      ╎
+      ╎Finished running tests
+      ╎
+      ╎Passing tests: 1
+      ╎Failing tests: 0
+      ╎
+      ╎All tests passed
+  - step: I have a "my_test.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Inner failing snapshot test
+
+      steps:
+        - I run 'echo "Aenean eu leo quam"'
+        - snapshot: stdout
+          snapshot_content: |-
+            ╎bad
+  - I run "%toolproof_path% --porcelain" and expect it to fail
+  - snapshot: stdout
+    snapshot_content: |-
+      ╎
+      ╎Running tests
+      ╎
+      ╎⚠ Inner failing snapshot test
+      ╎--- SNAPSHOT CHANGED ---
+      ╎
+      ╎    0     0 │ name: Inner failing snapshot test
+      ╎    1     1 │ 
+      ╎    2     2 │ steps:
+      ╎    3     3 │   - I run 'echo "Aenean eu leo quam"'
+      ╎    4     4 │   - snapshot: stdout
+      ╎    5     5 │     snapshot_content: |-
+      ╎    6       │-      ╎bad
+      ╎          6 │+      ╎Aenean eu leo quam
+      ╎
+      ╎
+      ╎--- END SNAPSHOT CHANGE ---
+      ╎
+      ╎Run in interactive mode (-i) to accept new snapshots
+      ╎
+      ╎
+      ╎Finished running tests
+      ╎
+      ╎Passing tests: 0
+      ╎Failing tests: 1
+      ╎
+      ╎Some tests failed

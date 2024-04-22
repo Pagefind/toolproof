@@ -1,0 +1,60 @@
+{
+  "name": "toolproof-yml",
+  "displayName": "Toolproof YAML Testing Syntax",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CloudCannon/toolproof/"
+  },
+  "publisher": "cc-oss",
+  "description": "Syntax highlighting for Toolproof's YAML testing format",
+  "version": "0.0.5",
+  "engines": {
+    "vscode": "^1.87.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "toolproof-yaml",
+        "aliases": [
+          "Toolproof YAML",
+          "toolproof-yaml"
+        ],
+        "extensions": [
+          "toolproof.yml",
+          "toolproof.yaml"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "toolproof-yaml",
+        "scopeName": "source.toolproof-yaml",
+        "path": "./syntaxes/toolproof-yaml.tmLanguage.json"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "node gen/gen.js && tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.87.0",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "18.x",
+    "@typescript-eslint/eslint-plugin": "^7.0.2",
+    "@typescript-eslint/parser": "^7.0.2",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3",
+    "@vscode/test-cli": "^0.0.6",
+    "@vscode/test-electron": "^2.3.9"
+  }
+}

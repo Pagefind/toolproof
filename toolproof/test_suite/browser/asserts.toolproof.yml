@@ -1,0 +1,70 @@
+name: Browser JS can use the assert helpers
+
+steps:
+  - step: I have a "setup.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Setup
+      type: reference
+
+      steps:
+        - I have a "public/index.html" file with the content "<p>Hello World</p>"
+        - I serve the directory "public"
+        - In my browser, I load "/"
+  - step: I have a "my_test.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Inner passing test
+
+      steps:
+        - ref: ./setup.toolproof.yml
+        - step: In my browser, I evaluate {js}
+          js: |-
+            toolproof.assert_eq(document.querySelector("p").innerText, "Hello World");
+            toolproof.assert_gte(4, 2);
+            toolproof.assert_lte(2, 4);
+            toolproof.assert(true);
+  - I run "%toolproof_path%"
+  - step: "stdout should contain 'Passing tests: 1'"
+  - step: "stdout should contain 'Failing tests: 0'"
+  - step: "stdout should contain 'All tests passed'"
+  - stderr should be empty
+  - step: I have a "my_test.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Inner failing test 1
+
+      steps:
+        - ref: ./setup.toolproof.yml
+        - step: In my browser, I evaluate {js}
+          js: |-
+            toolproof.assert_eq(document.querySelector("p").innerText, "Goodbye World");
+  - step: I have a "f2.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Inner failing test 2
+
+      steps:
+        - ref: ./setup.toolproof.yml
+        - step: In my browser, I evaluate {js}
+          js: |-
+            toolproof.assert_gte(2, 4);
+  - step: I have a "f3.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Inner failing test 3
+
+      steps:
+        - ref: ./setup.toolproof.yml
+        - step: In my browser, I evaluate {js}
+          js: |-
+            toolproof.assert_lte(4, 2);
+  - step: I have a "f4.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Inner failing test 4
+
+      steps:
+        - ref: ./setup.toolproof.yml
+        - step: In my browser, I evaluate {js}
+          js: |-
+            toolproof.assert(false);
+  - I run "%toolproof_path% --porcelain" and expect it to fail
+  - step: "stdout should contain 'Passing tests: 0'"
+  - step: "stdout should contain 'Failing tests: 4'"
+  - step: "stdout should contain 'Some tests failed'"
+  - stderr should be empty

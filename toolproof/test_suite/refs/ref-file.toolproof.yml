@@ -1,0 +1,82 @@
+name: Toolproof can reference steps from another file
+
+steps:
+  - step: I have a "refs/common.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Common setup
+      type: reference
+
+      steps:
+        - I have a "public/index.html" file with the content "<p>Hello World</p>"
+        - I serve the directory "public"
+        - In my browser, I load "/"
+  - step: I have a "refs/assert.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Oddly specific assertion
+      type: reference
+
+      steps:
+        - step: In my browser, I evaluate {js}
+          js: |-
+            let p = document.querySelector("p");
+            toolproof.assert_eq(p.innerText, "Modifried");
+  - step: I have a "tests/my_test.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Inner passing test
+
+      steps:
+        - ref: "../refs/common.toolproof.yml"
+        - step: In my browser, I evaluate {js}
+          js: |-
+            document.querySelector("p").innerText = "Modifried";
+        - ref: "../refs/assert.toolproof.yml"
+  - I run "%toolproof_path%"
+  - step: "stdout should contain 'Passing tests: 1'"
+  - step: "stdout should contain 'Failing tests: 0'"
+  - step: "stdout should contain 'All tests passed'"
+  - stderr should be empty
+  - step: I have a "tests/my_test.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Inner failing test
+
+      steps:
+        - ref: "../refs/common.toolproof.yml"
+        - step: In my browser, I evaluate {js}
+          js: |-
+            document.querySelector("p").innerText = "O.G.";
+        - ref: "../refs/assert.toolproof.yml"
+  - I run "%toolproof_path% --porcelain" and expect it to fail
+  - step: "stdout should contain 'Passing tests: 0'"
+  - step: "stdout should contain 'Failing tests: 1'"
+  - step: "stdout should contain 'Some tests failed'"
+  - snapshot: stdout
+    snapshot_content: |-
+      ╎
+      ╎Running tests
+      ╎
+      ╎✘ Inner failing test
+      ╎--- STEPS ---
+      ╎✓ run steps from: ../refs/common.toolproof.yml
+      ╎  ↳ ✓ I have a "public/index.html" file with the content "<p>Hello World</p>"
+      ╎  ↳ ✓ I serve the directory "public"
+      ╎  ↳ ✓ In my browser, I load "/"
+      ╎✓ In my browser, I evaluate {js}
+      ╎✘ run steps from: ../refs/assert.toolproof.yml
+      ╎  ↳ ✘ In my browser, I evaluate {js}
+      ╎--- ERROR ---
+      ╎Error in step "In my browser, I evaluate {js}":
+      ╎js: |-
+      ╎  let p = document.querySelector("p");
+      ╎  toolproof.assert_eq(p.innerText, "Modifried");
+      ╎--
+      ╎Failed assertion: Equality Assertion failed. Left: "O.G.", Right: "Modifried"
+      ╎browser console:
+      ╎
+      ╎
+      ╎Finished running tests
+      ╎
+      ╎Passing tests: 0
+      ╎Failing tests: 1
+      ╎
+      ╎Some tests failed
+  - stderr should be empty
