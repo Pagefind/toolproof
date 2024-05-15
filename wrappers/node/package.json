@@ -1,11 +1,13 @@
 {
   "name": "toolproof",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "In the works",
-  "bin": "lib/index.js",
+  "bin": {
+    "toolproof": "lib/index.js"
+  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/CloudCannon/toolproof"
+    "url": "git+https://github.com/CloudCannon/toolproof.git"
   },
   "author": "CloudCannon",
   "license": "MIT",
@@ -17,11 +19,15 @@
     "@toolproof/windows-x64": "0.0.0"
   },
   "keywords": [
-    "flat",
-    "git",
-    "data lake",
-    "static",
-    "api"
+    "CloudCannon",
+    "Cloud",
+    "Cannon",
+    "toolproof",
+    "tool",
+    "proof",
+    "testing",
+    "bdd",
+    "test"
   ],
   "bugs": {
     "url": "https://github.com/CloudCannon/toolproof/issues"
