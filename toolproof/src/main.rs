@@ -8,7 +8,7 @@ use console::{style, Term};
 use futures::stream::StreamExt;
 use futures::{future::join_all, stream::FuturesUnordered};
 use normalize_path::NormalizePath;
-use pagebrowse_lib::PagebrowseBuilder;
+use pagebrowse::PagebrowseBuilder;
 use parser::ToolproofFileType;
 use schematic::color::owo::OwoColorize;
 use segments::ToolproofSegments;
@@ -233,10 +233,6 @@ async fn main() {
 
     let pagebrowser = PagebrowseBuilder::new(ctx.params.concurrency)
         .visible(false)
-        .manager_path(format!(
-            "{}/../../pagebrowse/target/debug/pagebrowse_manager",
-            env!("CARGO_MANIFEST_DIR")
-        ))
         .init_script(include_str!("./definitions/browser/init.js").to_string())
         .build()
         .await

@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use pagebrowse_lib::PagebrowseError;
+use pagebrowse::PagebrowseError;
 use thiserror::Error;
 
 use crate::ToolproofTestStep;

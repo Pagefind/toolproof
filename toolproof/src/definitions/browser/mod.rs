@@ -7,7 +7,7 @@ use crate::errors::{ToolproofInputError, ToolproofStepError};
 
 use super::{SegmentArgs, ToolproofInstruction, ToolproofRetriever};
 
-use pagebrowse_lib::{PagebrowseBuilder, Pagebrowser, PagebrowserWindow};
+use pagebrowse::{PagebrowseBuilder, Pagebrowser, PagebrowserWindow};
 
 const HARNESS: &'static str = include_str!("./harness.js");
 

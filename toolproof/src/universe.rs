@@ -1,4 +1,4 @@
-use pagebrowse_lib::Pagebrowser;
+use pagebrowse::Pagebrowser;
 use std::{
     collections::{BTreeMap, HashMap},
     path::PathBuf,

@@ -24,7 +24,7 @@ similar-string = "1.4.3"
 console = "0.15"
 dialoguer = { version = "0.11", features = ["fuzzy-select"] }
 async-trait = "0.1.78"
-pagebrowse_lib = { path = "../../pagebrowse/crates/pagebrowse_lib" }
+pagebrowse = "0.1.0"
 clap = { version = "4", features = ["cargo"] }
 schematic = { version = "0.12.0", features = ["yaml"] }
 strip-ansi-escapes = "0.2.0"

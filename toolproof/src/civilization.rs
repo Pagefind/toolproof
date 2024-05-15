@@ -9,7 +9,7 @@ use std::{
 };
 
 use actix_web::dev::ServerHandle;
-use pagebrowse_lib::{Pagebrowser, PagebrowserWindow};
+use pagebrowse::{Pagebrowser, PagebrowserWindow};
 use portpicker::pick_unused_port;
 use tempfile::tempdir;
 use tokio::task::JoinHandle;

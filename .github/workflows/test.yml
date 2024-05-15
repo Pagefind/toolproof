@@ -51,6 +51,12 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
+      - name: Install pagebrowse manager
+        run: cargo install pagebrowse_manager --root .
+
+      - name: ls
+        run: ls
+
       # TODO: install pagebrowse
 
       - name: Build Lib
