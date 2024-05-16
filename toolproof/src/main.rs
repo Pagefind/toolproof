@@ -233,6 +233,10 @@ async fn main() {
 
     let pagebrowser = PagebrowseBuilder::new(ctx.params.concurrency)
         .visible(false)
+        .manager_path(format!(
+            "{}/../bin/pagebrowse_manager",
+            env!("CARGO_MANIFEST_DIR")
+        ))
         .init_script(include_str!("./definitions/browser/init.js").to_string())
         .build()
         .await
