@@ -58,6 +58,7 @@ jobs:
           libgtk-3-dev
           libayatana-appindicator3-dev
           libwebkit2gtk-4.0-dev
+          gir1.2-javascriptcoregtk-4.1
           webkit2gtk-driver
           xvfb
 
