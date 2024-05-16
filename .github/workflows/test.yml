@@ -60,6 +60,7 @@ jobs:
           libwebkit2gtk-4.0-dev
           gir1.2-javascriptcoregtk-4.1
           libjavascriptcoregtk-4.1-dev
+          libsoup-3.0-dev
           webkit2gtk-driver
           xvfb
 
