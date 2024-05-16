@@ -82,4 +82,4 @@ jobs:
       - name: Test Lib
         working-directory: ./toolproof
          # toolproof tests itself when run
-        run: xvfb-run cargo run -- --placeholders toolproof_path="$(pwd)/target/debug/toolproof"
+        run: xvfb-run cargo run -- --placeholders toolproof_path="$(pwd)/../target/debug/toolproof"
