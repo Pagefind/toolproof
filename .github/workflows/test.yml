@@ -81,4 +81,4 @@ jobs:
       - name: Test Lib
         working-directory: ./toolproof
          # toolproof tests itself when run
-        run: xvfb-run cargo run -- --placeholders toolproof_path="../target/${{ matrix.target }}/debug/toolproof"
+        run: xvfb-run cargo run -- --placeholders toolproof_path="target/debug/toolproof"
