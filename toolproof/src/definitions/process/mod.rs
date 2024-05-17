@@ -61,7 +61,7 @@ mod run {
         ) -> Result<(), ToolproofStepError> {
             let command = args.get_string("command")?;
 
-            let exit_status = civ.run_command(command.to_string())?;
+            let exit_status = civ.run_command(command.to_string()).await?;
 
             if !exit_status.success() {
                 return Err(ToolproofTestFailure::Custom {
@@ -97,7 +97,7 @@ mod run {
         ) -> Result<(), ToolproofStepError> {
             let command = args.get_string("command")?;
 
-            let exit_status = civ.run_command(command.to_string())?;
+            let exit_status = civ.run_command(command.to_string()).await?;
 
             if exit_status.success() {
                 return Err(ToolproofTestFailure::Custom {

@@ -1,4 +1,6 @@
-use clap::{arg, command, value_parser, Arg, ArgAction, ArgMatches, Command};
+use clap::{
+    arg, builder::PossibleValuesParser, command, value_parser, Arg, ArgAction, ArgMatches, Command,
+};
 use schematic::{derive_enum, Config, ConfigEnum, ConfigLoader};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, env, path::PathBuf};
@@ -100,7 +102,22 @@ fn get_cli_matches() -> ArgMatches {
             )
             .action(clap::ArgAction::SetTrue),
         )
+        .arg(
+            arg!(
+                --browser <IMPL> ... "Specify which browser to use when running browser automation tests"
+            )
+            .required(false)
+            .value_parser(PossibleValuesParser::new(["chrome", "pagebrowse"])),
+        )
         .get_matches()
+}
+
+#[derive(ConfigEnum, Default, Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ToolproofBrowserImpl {
+    #[default]
+    Chrome,
+    Pagebrowse,
 }
 
 #[derive(Config, Debug, Clone)]
@@ -123,6 +140,10 @@ pub struct ToolproofParams {
 
     /// Run all tests when in interactive mode
     pub all: bool,
+
+    /// Specify which browser to use when running browser automation tests
+    #[setting(env = "TOOLPROOF_BROWSER")]
+    pub browser: ToolproofBrowserImpl,
 
     /// How many tests should be run concurrently
     #[setting(env = "TOOLPROOF_CONCURRENCY")]

@@ -11,7 +11,7 @@ use crate::{
 };
 
 mod assertions;
-mod browser;
+pub mod browser;
 mod filesystem;
 mod hosting;
 mod process;

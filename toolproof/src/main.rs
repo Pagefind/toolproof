@@ -1,29 +1,22 @@
 use std::collections::BTreeMap;
 use std::fmt::Display;
 use std::sync::Arc;
-use std::time::Duration;
-use std::{collections::HashMap, path::PathBuf, time::Instant};
+use std::{collections::HashMap, time::Instant};
 
 use console::{style, Term};
-use futures::stream::StreamExt;
-use futures::{future::join_all, stream::FuturesUnordered};
+use futures::future::join_all;
 use normalize_path::NormalizePath;
-use pagebrowse::PagebrowseBuilder;
 use parser::ToolproofFileType;
 use schematic::color::owo::OwoColorize;
 use segments::ToolproofSegments;
-use similar_string::{compare_similarity, find_best_similarity};
+use similar_string::compare_similarity;
 use tokio::fs::read_to_string;
-use tokio::time::sleep;
+use tokio::sync::OnceCell;
 use wax::Glob;
 
-use crate::definitions::{
-    register_assertions, register_instructions, register_retrievers, ToolproofInstruction,
-};
+use crate::definitions::{register_assertions, register_instructions, register_retrievers};
 use crate::differ::diff_snapshots;
-use crate::errors::{
-    ToolproofInputError, ToolproofStepError, ToolproofTestError, ToolproofTestFailure,
-};
+use crate::errors::{ToolproofInputError, ToolproofStepError, ToolproofTestError};
 use crate::interactive::{confirm_snapshot, get_run_mode, question, RunMode};
 use crate::logging::log_step_runs;
 use crate::options::configure;
@@ -158,14 +151,15 @@ fn closest_strings<'o>(target: &String, options: &'o Vec<String>) -> Vec<(&'o St
     scores
 }
 
-#[tokio::main]
-async fn main() {
+async fn main_inner() -> Result<(), ()> {
     let ctx = configure();
 
     let start = Instant::now();
 
     let glob = Glob::new("**/*.toolproof.yml").expect("Valid glob");
-    let walker = glob.walk(".").flatten();
+    let walker = glob
+        .walk(ctx.params.root.clone().unwrap_or(".".into()))
+        .flatten();
 
     let loaded_files = walker
         .map(|entry| {
@@ -210,7 +204,7 @@ async fn main() {
         for e in errors {
             eprintln!("  • {e}");
         }
-        std::process::exit(1);
+        return Err(());
     }
 
     let all_instructions = register_instructions();
@@ -231,19 +225,8 @@ async fn main() {
         .map(|k| k.get_comparison_string())
         .collect();
 
-    let pagebrowser = PagebrowseBuilder::new(ctx.params.concurrency)
-        .visible(false)
-        .manager_path(format!(
-            "{}/../bin/pagebrowse_manager",
-            env!("CARGO_MANIFEST_DIR")
-        ))
-        .init_script(include_str!("./definitions/browser/init.js").to_string())
-        .build()
-        .await
-        .expect("Can't build the pagebrowser");
-
     let universe = Arc::new(Universe {
-        pagebrowser: Arc::new(pagebrowser),
+        browser: OnceCell::new(),
         tests: all_tests,
         instructions: all_instructions,
         instruction_comparisons,
@@ -259,7 +242,7 @@ async fn main() {
             Ok(mode) => mode,
             Err(e) => {
                 eprintln!("{e}");
-                std::process::exit(1);
+                return Err(());
             }
         }
     } else {
@@ -583,7 +566,7 @@ async fn main() {
             Ok(b) => b,
             Err(e) => {
                 eprintln!("{e}");
-                std::process::exit(1);
+                return Err(());
             }
         };
 
@@ -602,7 +585,7 @@ async fn main() {
 
                             if let Err(e) = tokio::fs::write(&file.file_path, out).await {
                                 eprintln!("Unable to write updates snapshot to disk.\n{e}");
-                                std::process::exit(1);
+                                return Err(());
                             }
                         }
                     }
@@ -637,11 +620,21 @@ async fn main() {
             "{}",
             style(&format!("\nSome tests failed{}", duration)).red()
         );
-        std::process::exit(1);
+        return Err(());
     } else {
         println!(
             "{}",
             style(&format!("\nAll tests passed{}", duration)).green()
         );
+    }
+
+    Ok(())
+}
+
+#[tokio::main]
+async fn main() {
+    match main_inner().await {
+        Ok(_) => std::process::exit(0),
+        Err(_) => std::process::exit(1),
     }
 }
