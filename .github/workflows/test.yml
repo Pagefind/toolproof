@@ -51,29 +51,8 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - name: Pagebrowse dependencies
-        run: >-
-          sudo apt-get update &&
-          sudo apt-get install -y
-          libgtk-3-dev
-          libgtk-4-dev
-          libayatana-appindicator3-dev
-          libwebkit2gtk-4.0-dev
-          libwebkit2gtk-4.1-dev
-          gir1.2-javascriptcoregtk-4.1
-          libjavascriptcoregtk-4.1-dev
-          libsoup-3.0-dev
-          webkit2gtk-driver
-          at-spi2-core
-          xvfb
-
-      - name: Install pagebrowse manager
-        run: cargo install pagebrowse_manager --root .
-
-      - name: ls
-        run: ls
-
-      # TODO: install pagebrowse
+      # - name: Install pagebrowse manager
+      #   run: cargo install pagebrowse_manager --root .
 
       - name: Build Lib
         working-directory: ./toolproof
@@ -82,4 +61,4 @@ jobs:
       - name: Test Lib
         working-directory: ./toolproof
          # toolproof tests itself when run
-        run: xvfb-run cargo run -- --placeholders toolproof_path="$(pwd)/../target/debug/toolproof"
+        run: cargo run -- --placeholders toolproof_path="$(pwd)/../target/debug/toolproof"
