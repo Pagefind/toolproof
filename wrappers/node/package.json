@@ -1,6 +1,6 @@
 {
   "name": "toolproof",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "In the works",
   "bin": {
     "toolproof": "lib/index.js"
