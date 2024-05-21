@@ -1,19 +1,18 @@
-use pagebrowse_lib::Pagebrowser;
-use std::{
-    collections::{BTreeMap, HashMap},
-    path::PathBuf,
-    sync::Arc,
-};
+use std::collections::{BTreeMap, HashMap};
+
+use tokio::sync::OnceCell;
 
 use crate::{
-    definitions::{ToolproofAssertion, ToolproofInstruction, ToolproofRetriever},
+    definitions::{
+        browser::BrowserTester, ToolproofAssertion, ToolproofInstruction, ToolproofRetriever,
+    },
     options::ToolproofContext,
     segments::ToolproofSegments,
     ToolproofTestFile,
 };
 
 pub struct Universe<'u> {
-    pub pagebrowser: Arc<Pagebrowser>,
+    pub browser: OnceCell<BrowserTester>,
     pub tests: BTreeMap<String, ToolproofTestFile>,
     pub instructions: HashMap<ToolproofSegments, &'u dyn ToolproofInstruction>,
     pub instruction_comparisons: Vec<String>,

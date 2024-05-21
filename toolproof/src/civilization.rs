@@ -3,19 +3,21 @@ use std::{
     fs,
     io::{Read, Write},
     path::PathBuf,
-    process::{Command, ExitStatus},
+    process::{ExitStatus, Stdio},
     str::from_utf8,
     sync::Arc,
+    time::Duration,
 };
 
 use actix_web::dev::ServerHandle;
-use pagebrowse_lib::{Pagebrowser, PagebrowserWindow};
 use portpicker::pick_unused_port;
 use tempfile::tempdir;
-use tokio::task::JoinHandle;
+use tokio::{process::Command, task::JoinHandle};
 use wax::Glob;
 
-use crate::{errors::ToolproofTestFailure, options::ToolproofParams, universe::Universe};
+use crate::{
+    definitions::browser::BrowserWindow, errors::ToolproofTestFailure, universe::Universe,
+};
 
 #[derive(Debug)]
 pub struct CommandOutput {
@@ -27,7 +29,7 @@ pub struct Civilization<'u> {
     pub tmp_dir: Option<tempfile::TempDir>,
     pub last_command_output: Option<CommandOutput>,
     pub assigned_server_port: Option<u16>,
-    pub window: Option<PagebrowserWindow>,
+    pub window: Option<BrowserWindow>,
     pub threads: Vec<JoinHandle<Result<(), std::io::Error>>>,
     pub handles: Vec<ServerHandle>,
     pub env_vars: HashMap<String, String>,
@@ -150,7 +152,7 @@ impl<'u> Civilization<'u> {
         self.env_vars.insert(name, value);
     }
 
-    pub fn run_command(&mut self, cmd: String) -> Result<ExitStatus, ToolproofTestFailure> {
+    pub async fn run_command(&mut self, cmd: String) -> Result<ExitStatus, ToolproofTestFailure> {
         let mut command = Command::new("sh");
         command
             .arg("-c")
@@ -161,7 +163,25 @@ impl<'u> Civilization<'u> {
             command.env(key, val);
         }
 
-        let Ok(output) = command.output() else {
+        command.stdout(Stdio::piped());
+        command.stderr(Stdio::piped());
+        let running = command.spawn().map_err(|_| ToolproofTestFailure::Custom {
+            msg: format!("Failed to run command: {cmd}"),
+        })?;
+
+        let Ok(output) = (match tokio::time::timeout(
+            Duration::from_secs(30),
+            running.wait_with_output(),
+        )
+        .await
+        {
+            Ok(out) => out,
+            Err(_) => {
+                return Err(ToolproofTestFailure::Custom {
+                    msg: format!("Failed to run command due to timeout: {cmd}"),
+                });
+            }
+        }) else {
             return Err(ToolproofTestFailure::Custom {
                 msg: format!("Failed to run command: {cmd}"),
             });

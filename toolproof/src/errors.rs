@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
-use pagebrowse_lib::PagebrowseError;
+use chromiumoxide::error::CdpError;
+use pagebrowse::PagebrowseError;
 use thiserror::Error;
 
 use crate::ToolproofTestStep;
@@ -45,6 +46,8 @@ pub enum ToolproofInternalError {
     Custom { msg: String },
     #[error("{0}")]
     PagebrowseError(#[from] PagebrowseError),
+    #[error("{0}")]
+    ChromeError(#[from] CdpError),
 }
 
 #[derive(Error, Debug)]

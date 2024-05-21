@@ -30,11 +30,11 @@ pub async fn run_toolproof_experiment(
         universe,
     };
 
-    run_toolproof_steps(&input.file_directory, &mut input.steps, &mut civ).await?;
+    let res = run_toolproof_steps(&input.file_directory, &mut input.steps, &mut civ).await;
 
     civ.shutdown().await;
 
-    Ok(())
+    res
 }
 
 #[async_recursion]

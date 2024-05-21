@@ -5,6 +5,7 @@ use serde_json::{Map, Value};
 
 use crate::{
     errors::ToolproofInputError,
+    platforms::normalize_line_endings,
     segments::{ToolproofSegment, ToolproofSegments},
     ToolproofTestFile, ToolproofTestStep, ToolproofTestStepState,
 };
@@ -127,7 +128,7 @@ pub fn parse_file(s: &str, p: PathBuf) -> Result<ToolproofTestFile, ToolproofInp
 
     ToolproofTestInput {
         parsed: raw_test,
-        original_source: s.to_string(),
+        original_source: normalize_line_endings(s),
         file_path: p.to_slash_lossy().into_owned(),
         file_directory: p
             .parent()
@@ -198,7 +199,7 @@ pub fn parse_segments(s: &str) -> Result<ToolproofSegments, ToolproofInputError>
     match mode {
         InstMode::None(start) => {
             if start < s.len() {
-                segments.push(Literal(s[start..].to_string()));
+                segments.push(Literal(s[start..].to_lowercase()));
             }
         }
         InstMode::InQuote(_, q) => return Err(ToolproofInputError::UnclosedValue { expected: q }),
@@ -225,14 +226,14 @@ mod test {
         // look inside Value or Variable segments.
         assert_eq!(
             segments.segments,
-            vec![Literal("I run my program".to_string())]
+            vec![Literal("i run my program".to_string())]
         );
 
         let segments = parse_segments("I have a \"public/cat/'index'.html\" file with the body '<h1>Happy post about \"cats</h1>'").expect("Valid segments");
         assert_eq!(
             segments.segments,
             vec![
-                Literal("I have a ".to_string()),
+                Literal("i have a ".to_string()),
                 Value(st("public/cat/'index'.html")),
                 Literal(" file with the body ".to_string()),
                 Value(st("<h1>Happy post about \"cats</h1>"))
@@ -244,9 +245,9 @@ mod test {
         assert_eq!(
             segments.segments,
             vec![
-                Literal("In my browser, ".to_string()),
+                Literal("in my browser, ".to_string()),
                 Value(st("")),
-                Literal("I eval ".to_string()),
+                Literal("i eval ".to_string()),
                 Variable("j\"s".to_string()),
                 Literal(" and ".to_string()),
                 Value(st("x")),
@@ -265,7 +266,7 @@ mod test {
             ToolproofTestStep::Instruction {
                 step: ToolproofSegments {
                     segments: vec![
-                        Literal("I have a ".to_string()),
+                        Literal("i have a ".to_string()),
                         Variable("js".to_string()),
                         Literal(" file".to_string())
                     ]
@@ -288,7 +289,7 @@ mod test {
             ToolproofTestStep::Assertion {
                 retrieval: ToolproofSegments {
                     segments: vec![
-                        Literal("The file ".to_string()),
+                        Literal("the file ".to_string()),
                         Variable("name".to_string())
                     ]
                 },

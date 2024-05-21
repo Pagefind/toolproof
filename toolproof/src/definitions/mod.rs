@@ -11,7 +11,7 @@ use crate::{
 };
 
 mod assertions;
-mod browser;
+pub mod browser;
 mod filesystem;
 mod hosting;
 mod process;
@@ -110,7 +110,7 @@ mod test {
         #[async_trait]
         impl ToolproofInstruction for TestInstruction {
             fn segments(&self) -> &'static str {
-                "I am an instruction asking for {argument}"
+                "__test__ I am an instruction asking for {argument}"
             }
 
             async fn run(
@@ -122,8 +122,9 @@ mod test {
             }
         }
 
-        let users_instruction = parse_segments("I am an instruction asking for \"this argument\"")
-            .expect("Valid instruction");
+        let users_instruction =
+            parse_segments("__test__ I am an instruction asking for \"this argument\"")
+                .expect("Valid instruction");
 
         let all_instructions = register_instructions();
         let matching_instruction = all_instructions
@@ -132,7 +133,7 @@ mod test {
 
         assert_eq!(
             matching_instruction.segments(),
-            "I am an instruction asking for {argument}"
+            "__test__ I am an instruction asking for {argument}"
         );
     }
 
@@ -147,7 +148,7 @@ mod test {
         #[async_trait]
         impl ToolproofRetriever for TestRetriever {
             fn segments(&self) -> &'static str {
-                "the file {filename}"
+                "__test__ the file {filename}"
             }
 
             async fn run(
@@ -159,14 +160,18 @@ mod test {
             }
         }
 
-        let users_segments = parse_segments("the file \"index.html\"").expect("Valid instruction");
+        let users_segments =
+            parse_segments("__test__ the file \"index.html\"").expect("Valid instruction");
 
         let all_segments = register_retrievers();
         let matching_retriever = all_segments
             .get(&users_segments)
             .expect("should be able to retrieve segments");
 
-        assert_eq!(matching_retriever.segments(), "the file {filename}");
+        assert_eq!(
+            matching_retriever.segments(),
+            "__test__ the file {filename}"
+        );
     }
 
     #[test]
@@ -180,7 +185,7 @@ mod test {
         #[async_trait]
         impl ToolproofAssertion for TestAssertion {
             fn segments(&self) -> &'static str {
-                "be exactly {value}"
+                "__test__ be exactly {value}"
             }
 
             async fn run(
@@ -193,13 +198,14 @@ mod test {
             }
         }
 
-        let users_segments = parse_segments("be exactly {my_json}").expect("Valid instruction");
+        let users_segments =
+            parse_segments("__test__ be exactly {my_json}").expect("Valid instruction");
 
         let all_segments = register_assertions();
         let matching_assertion = all_segments
             .get(&users_segments)
             .expect("should be able to retrieve segments");
 
-        assert_eq!(matching_assertion.segments(), "be exactly {value}");
+        assert_eq!(matching_assertion.segments(), "__test__ be exactly {value}");
     }
 }

@@ -51,13 +51,15 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      # TODO: install pagebrowse
-
       - name: Build Lib
         working-directory: ./toolproof
         run: cargo build
 
       - name: Test Lib
+        working-directory: ./toolproof 
+        run: cargo test
+
+      - name: Test CLI
         working-directory: ./toolproof
          # toolproof tests itself when run
-        run: cargo run -- --placeholders toolproof_path="../target/${{ matrix.target }}/debug/toolproof"
+        run: cargo run -- --placeholders toolproof_path="$(pwd)/../target/debug/toolproof"

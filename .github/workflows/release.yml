@@ -358,7 +358,8 @@ jobs:
       - name: Test CLI
         if: matrix.run_tests == true
         working-directory: ./toolproof
-        run: cargo run -- --placeholders toolproof_path="../target/${{ matrix.target }}/release/toolproof"
+         # toolproof tests itself when run
+        run: cargo run -- --placeholders toolproof_path="$(pwd)/../target/debug/toolproof"
         
         # TODO: build and package pagebrowse
       - name: Create Release Assets
