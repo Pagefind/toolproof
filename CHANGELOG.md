@@ -9,4 +9,6 @@
 
 ## Unreleased
 
+## v0.2.0 (May 21, 2024)
+
 * Base toolproof release
