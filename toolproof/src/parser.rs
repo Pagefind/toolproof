@@ -5,6 +5,7 @@ use serde_json::{Map, Value};
 
 use crate::{
     errors::ToolproofInputError,
+    platforms::normalize_line_endings,
     segments::{ToolproofSegment, ToolproofSegments},
     ToolproofTestFile, ToolproofTestStep, ToolproofTestStepState,
 };
@@ -127,7 +128,7 @@ pub fn parse_file(s: &str, p: PathBuf) -> Result<ToolproofTestFile, ToolproofInp
 
     ToolproofTestInput {
         parsed: raw_test,
-        original_source: s.to_string(),
+        original_source: normalize_line_endings(s),
         file_path: p.to_slash_lossy().into_owned(),
         file_directory: p
             .parent()

@@ -34,6 +34,7 @@ mod interactive;
 mod logging;
 mod options;
 mod parser;
+mod platforms;
 mod runner;
 mod segments;
 mod snapshot_writer;
