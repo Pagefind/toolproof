@@ -2,6 +2,8 @@
 name = "toolproof"
 version = "0.0.0"
 edition = "2021"
+description = "Standalone test suite for CLI tools and applications"
+license = "MIT"
 
 [dependencies]
 thiserror = "1.0"
