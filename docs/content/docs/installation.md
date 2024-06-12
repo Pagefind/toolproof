@@ -2,7 +2,7 @@
 title: "Installing and running Toolproof"
 nav_title: "Installing Toolproof"
 nav_section: References
-weight: 49
+weight: 5
 ---
 
 Toolproof is a static binary with no dynamic dependencies, so in most cases will be simple to install and run. Toolproof is currently supported on Windows, macOS, and Linux distributions.
