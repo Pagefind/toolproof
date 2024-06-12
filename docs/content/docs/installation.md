@@ -1,7 +1,7 @@
 ---
 title: "Installing and running Toolproof"
 nav_title: "Installing Toolproof"
-nav_section: References
+nav_section: Root
 weight: 5
 ---
 

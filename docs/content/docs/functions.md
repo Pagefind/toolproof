@@ -1,7 +1,7 @@
 ---
-title: "Functions Reference"
-nav_title: "Functions Reference"
-nav_section: References
+title: "Functions Glossary"
+nav_title: "Functions Glossary"
+nav_section: Root
 weight: 6
 ---
 
