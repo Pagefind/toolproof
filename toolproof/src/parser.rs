@@ -24,10 +24,19 @@ pub enum ToolproofFileType {
     Reference,
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum ToolproofPlatform {
+    Windows,
+    Mac,
+    Linux,
+}
+
 #[derive(serde::Serialize, serde::Deserialize)]
 struct RawToolproofTestFile {
     name: String,
     r#type: Option<ToolproofFileType>,
+    platforms: Option<Vec<ToolproofPlatform>>,
     steps: Vec<RawToolproofTestStep>,
 }
 
@@ -36,15 +45,18 @@ struct RawToolproofTestFile {
 enum RawToolproofTestStep {
     Ref {
         r#ref: String,
+        platforms: Option<Vec<ToolproofPlatform>>,
     },
     BareStep(String),
     StepWithParams {
         step: String,
+        platforms: Option<Vec<ToolproofPlatform>>,
         #[serde(flatten)]
         other: Map<String, Value>,
     },
     Snapshot {
         snapshot: String,
+        platforms: Option<Vec<ToolproofPlatform>>,
         #[serde(flatten)]
         other: Map<String, Value>,
     },
@@ -62,6 +74,7 @@ impl TryFrom<ToolproofTestInput> for ToolproofTestFile {
         Ok(ToolproofTestFile {
             name: value.parsed.name,
             r#type: value.parsed.r#type.unwrap_or(ToolproofFileType::Test),
+            platforms: value.parsed.platforms,
             steps,
             original_source: value.original_source,
             file_path: value.file_path,
@@ -75,7 +88,7 @@ impl TryFrom<RawToolproofTestStep> for ToolproofTestStep {
 
     fn try_from(value: RawToolproofTestStep) -> Result<Self, Self::Error> {
         match value {
-            RawToolproofTestStep::Ref { r#ref } => Ok(ToolproofTestStep::Ref {
+            RawToolproofTestStep::Ref { r#ref, platforms } => Ok(ToolproofTestStep::Ref {
                 other_file: PathBuf::try_from(&r#ref)
                     .map_err(|_| ToolproofInputError::InvalidPath {
                         input: r#ref.clone(),
@@ -85,17 +98,25 @@ impl TryFrom<RawToolproofTestStep> for ToolproofTestStep {
                 orig: r#ref,
                 hydrated_steps: None,
                 state: ToolproofTestStepState::Dormant,
+                platforms,
             }),
-            RawToolproofTestStep::BareStep(step) => parse_step(step, HashMap::new()),
-            RawToolproofTestStep::StepWithParams { step, other } => {
-                parse_step(step, HashMap::from_iter(other.into_iter()))
-            }
-            RawToolproofTestStep::Snapshot { snapshot, other } => Ok(ToolproofTestStep::Snapshot {
+            RawToolproofTestStep::BareStep(step) => parse_step(step, None, HashMap::new()),
+            RawToolproofTestStep::StepWithParams {
+                step,
+                platforms,
+                other,
+            } => parse_step(step, platforms, HashMap::from_iter(other.into_iter())),
+            RawToolproofTestStep::Snapshot {
+                snapshot,
+                platforms,
+                other,
+            } => Ok(ToolproofTestStep::Snapshot {
                 snapshot: parse_segments(&snapshot)?,
                 snapshot_content: None,
                 args: HashMap::from_iter(other.into_iter()),
                 orig: snapshot,
                 state: ToolproofTestStepState::Dormant,
+                platforms,
             }),
         }
     }
@@ -103,6 +124,7 @@ impl TryFrom<RawToolproofTestStep> for ToolproofTestStep {
 
 fn parse_step(
     step: String,
+    platforms: Option<Vec<ToolproofPlatform>>,
     args: HashMap<String, Value>,
 ) -> Result<ToolproofTestStep, ToolproofInputError> {
     if let Some((retrieval, assertion)) = step.split_once(" should ") {
@@ -112,6 +134,7 @@ fn parse_step(
             args,
             orig: step,
             state: ToolproofTestStepState::Dormant,
+            platforms,
         })
     } else {
         Ok(ToolproofTestStep::Instruction {
@@ -119,6 +142,7 @@ fn parse_step(
             args,
             orig: step,
             state: ToolproofTestStepState::Dormant,
+            platforms,
         })
     }
 }
@@ -257,7 +281,7 @@ mod test {
 
     #[test]
     fn test_parsing_steps() {
-        let Ok(step) = parse_step("I have a {js} file".to_string(), HashMap::new()) else {
+        let Ok(step) = parse_step("I have a {js} file".to_string(), None, HashMap::new()) else {
             panic!("Step did not parse");
         };
 
@@ -273,12 +297,14 @@ mod test {
                 },
                 args: HashMap::new(),
                 orig: "I have a {js} file".to_string(),
-                state: ToolproofTestStepState::Dormant
+                state: ToolproofTestStepState::Dormant,
+                platforms: None
             }
         );
 
         let Ok(step) = parse_step(
             "The file {name} should contain {html}".to_string(),
+            None,
             HashMap::new(),
         ) else {
             panic!("Step did not parse");
@@ -301,7 +327,8 @@ mod test {
                 },
                 args: HashMap::new(),
                 orig: "The file {name} should contain {html}".to_string(),
-                state: ToolproofTestStepState::Dormant
+                state: ToolproofTestStepState::Dormant,
+                platforms: None
             }
         );
     }

@@ -1,0 +1,82 @@
+name: Toolproof test platform flags
+
+steps:
+  - step: I have a "my_test_lin.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Inner passing snapshot test Linux
+      platforms:
+        - linux
+
+      steps:
+        - step: I run "uname"
+        - step: stdout should contain "Linux"
+  - step: I have a "my_test_mac.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Inner passing snapshot test MacOS
+      platforms:
+        - mac
+
+      steps:
+        - step: I run "uname"
+        - step: stdout should contain "Darwin"
+  - step: I have a "my_test_win.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Inner passing snapshot test Windows
+      platforms:
+        - windows
+
+      steps:
+        - step: I run "ver"
+        - step: stdout should contain "Windows"
+  - I run "%toolproof_path% --porcelain -c 1"
+  - snapshot: stdout
+    platforms: [linux]
+    snapshot_content: |-
+      ╎
+      ╎Running tests
+      ╎
+      ╎✓ Inner passing snapshot test Linux
+      ╎⊝ Inner passing snapshot test MacOS
+      ╎⊝ Inner passing snapshot test Windows
+      ╎
+      ╎Finished running tests
+      ╎
+      ╎Passing tests: 1
+      ╎Failing tests: 0
+      ╎Skipped tests: 2
+      ╎
+      ╎All tests passed
+  - snapshot: stdout
+    platforms: [mac]
+    snapshot_content: |-
+      ╎
+      ╎Running tests
+      ╎
+      ╎⊝ Inner passing snapshot test Linux
+      ╎✓ Inner passing snapshot test MacOS
+      ╎⊝ Inner passing snapshot test Windows
+      ╎
+      ╎Finished running tests
+      ╎
+      ╎Passing tests: 1
+      ╎Failing tests: 0
+      ╎Skipped tests: 2
+      ╎
+      ╎All tests passed
+  - snapshot: stdout
+    platforms: [windows]
+    snapshot_content: |-
+      ╎
+      ╎Running tests
+      ╎
+      ╎⊝ Inner passing snapshot test Linux
+      ╎⊝ Inner passing snapshot test MacOS
+      ╎✓ Inner passing snapshot test Windows
+      ╎
+      ╎Finished running tests
+      ╎
+      ╎Passing tests: 1
+      ╎Failing tests: 0
+      ╎Skipped tests: 2
+      ╎
+      ╎All tests passed

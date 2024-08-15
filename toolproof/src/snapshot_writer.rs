@@ -13,6 +13,7 @@ pub fn write_yaml_snapshots(input_doc: &str, hydrated_file: &ToolproofTestFile) 
                 args,
                 orig,
                 state,
+                platforms,
             } => {
                 let Some(snapshot_content) = snapshot_content else {
                     continue;
