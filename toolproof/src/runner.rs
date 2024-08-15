@@ -127,7 +127,7 @@ async fn run_toolproof_steps(
                 };
 
                 let instruction_args =
-                    SegmentArgs::build(reference_segments, step, args, Some(&civ.universe.ctx))
+                    SegmentArgs::build(reference_segments, step, args, Some(&civ))
                         .map_err(|e| mark_and_return_step_error(e.into(), state))?;
 
                 if platform_matches(platforms) {
@@ -158,9 +158,8 @@ async fn run_toolproof_steps(
                     ));
                 };
 
-                let retrieval_args =
-                    SegmentArgs::build(reference_ret, retrieval, args, Some(&civ.universe.ctx))
-                        .map_err(|e| mark_and_return_step_error(e.into(), state))?;
+                let retrieval_args = SegmentArgs::build(reference_ret, retrieval, args, Some(&civ))
+                    .map_err(|e| mark_and_return_step_error(e.into(), state))?;
 
                 let value = if platform_matches(platforms) {
                     retrieval_step
@@ -181,7 +180,7 @@ async fn run_toolproof_steps(
                 };
 
                 let assertion_args =
-                    SegmentArgs::build(reference_assert, assertion, args, Some(&civ.universe.ctx))
+                    SegmentArgs::build(reference_assert, assertion, args, Some(&civ))
                         .map_err(|e| mark_and_return_step_error(e.into(), state))?;
 
                 if platform_matches(platforms) {
@@ -212,9 +211,8 @@ async fn run_toolproof_steps(
                     ));
                 };
 
-                let retrieval_args =
-                    SegmentArgs::build(reference_ret, snapshot, args, Some(&civ.universe.ctx))
-                        .map_err(|e| mark_and_return_step_error(e.into(), state))?;
+                let retrieval_args = SegmentArgs::build(reference_ret, snapshot, args, Some(&civ))
+                    .map_err(|e| mark_and_return_step_error(e.into(), state))?;
 
                 if platform_matches(platforms) {
                     let value = retrieval_step

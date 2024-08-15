@@ -23,7 +23,7 @@ steps:
 
 ## Syntax
 
-Toolproof files contain a `steps` array, where each item is a test step. The steps you write are matched to Toolproof functions. 
+Toolproof files contain a `steps` array, where each item is a test step. The steps you write are matched to Toolproof functions.
 
 Toolproof's syntax uses plaintext sentences with placeholders,
 for example the first step in our example file above matches the Toolproof function:
@@ -156,3 +156,10 @@ steps:
     text: |-
       Hello world from %project_dir%
 ```
+
+Toolproof provides some placeholders by default:
+
+| placeholder                 | value                                                       |
+| --------------------------- | ----------------------------------------------------------- |
+| toolproof_process_directory | The working directory that you ran the Toolproof command in |
+| toolproof_test_directory    | The temporary directory that the current test is running in |

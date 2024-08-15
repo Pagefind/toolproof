@@ -1,0 +1,27 @@
+name: Toolproof provides default placeholders
+
+steps:
+  - step: I have a "misc_file" file with the content "lorem ipsum"
+  - step: I have a "my_test.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Inner passing test
+
+      steps:
+        - step: I have a "test_file" file with the content "donor"
+        - step: I run "cat @toolproof_test_directory@/test_file"
+        - stdout should contain "donor"
+  - I run "%toolproof_path% --porcelain --placeholder-delimiter '@'"
+  - snapshot: stdout
+    snapshot_content: |-
+      ╎
+      ╎Running tests
+      ╎
+      ╎✓ Inner passing test
+      ╎
+      ╎Finished running tests
+      ╎
+      ╎Passing tests: 1
+      ╎Failing tests: 0
+      ╎Skipped tests: 0
+      ╎
+      ╎All tests passed
