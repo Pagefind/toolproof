@@ -11,7 +11,7 @@ steps:
           platforms: [linux]
         - step: stdout should contain "Darwin"
           platforms: [mac]
-        - step: stdout should contain "Windows"
+        - step: stdout should contain "MINGW" # targeting GitHub actions Windows environment
           platforms: [windows]
   - I run "%toolproof_path% --porcelain"
   - snapshot: stdout

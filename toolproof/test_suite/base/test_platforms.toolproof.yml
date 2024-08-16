@@ -25,9 +25,11 @@ steps:
       platforms:
         - windows
 
+      # targeting GitHub actions Windows environment
+
       steps:
-        - step: I run "ver"
-        - step: stdout should contain "Windows"
+        - step: I run "uname"
+        - step: stdout should contain "MINGW"
   - I run "%toolproof_path% --porcelain -c 1"
   - snapshot: stdout
     platforms: [linux]
