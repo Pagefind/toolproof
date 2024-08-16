@@ -1,6 +1,6 @@
 # Changelog
 
-<!-- 
+<!--
     Add changes to the Unreleased section during development.
     Do not change this header — the GitHub action that releases
     this project will edit this file and add the version header for you.
@@ -8,6 +8,9 @@
 -->
 
 ## Unreleased
+
+* Adds platform flags for tests and individual steps
+* Adds default placeholders for directories
 
 ## v0.2.0 (May 21, 2024)
 
