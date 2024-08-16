@@ -17,6 +17,7 @@ jobs:
       run:
         shell: bash
     strategy:
+      fail-fast: false
       matrix:
         include:
           - build: linux
@@ -40,26 +41,28 @@ jobs:
         with:
           fetch-depth: 1
 
+      - uses: Swatinem/rust-cache@v2
+
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-            toolchain: ${{ matrix.rust }}
-            target: ${{ matrix.target }}
-            override: true
-            default: true
-            components: rustfmt, clippy
-
-      - uses: Swatinem/rust-cache@v2
+          toolchain: ${{ matrix.rust }}
+          target: ${{ matrix.target }}
+          override: true
+          default: true
+          components: rustfmt, clippy
 
       - name: Build Lib
         working-directory: ./toolproof
         run: cargo build
 
       - name: Test Lib
-        working-directory: ./toolproof 
+        working-directory: ./toolproof
         run: cargo test
+
+      - uses: browser-actions/setup-chrome@v1
 
       - name: Test CLI
         working-directory: ./toolproof
-         # toolproof tests itself when run
-        run: cargo run -- --placeholders toolproof_path="$(pwd)/../target/debug/toolproof"
+        # toolproof tests itself when run
+        run: cargo run -- --placeholders toolproof_path="$(pwd)/../target/debug/toolproof" -c 1
