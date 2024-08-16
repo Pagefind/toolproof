@@ -15,6 +15,7 @@ pub fn log_step_runs(steps: &Vec<ToolproofTestStep>, indent: usize) {
             "{prefix}{}",
             match step.state() {
                 Dormant => style(format!("⦸ {step}")).dim(),
+                Skipped => style(format!("⊝ {step}")).dim(),
                 Failed => style(format!("✘ {step}")).red(),
                 Passed => style(format!("✓ {step}")).green(),
             }

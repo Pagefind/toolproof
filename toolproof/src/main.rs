@@ -6,7 +6,7 @@ use std::{collections::HashMap, time::Instant};
 use console::{style, Term};
 use futures::future::join_all;
 use normalize_path::NormalizePath;
-use parser::ToolproofFileType;
+use parser::{ToolproofFileType, ToolproofPlatform};
 use schematic::color::owo::OwoColorize;
 use segments::ToolproofSegments;
 use similar_string::compare_similarity;
@@ -44,6 +44,7 @@ mod universe;
 pub struct ToolproofTestFile {
     pub name: String,
     r#type: ToolproofFileType,
+    pub platforms: Option<Vec<ToolproofPlatform>>,
     pub steps: Vec<ToolproofTestStep>,
     pub original_source: String,
     pub file_path: String,
@@ -51,8 +52,15 @@ pub struct ToolproofTestFile {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub enum ToolproofTestSuccess {
+    Skipped,
+    Passed,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum ToolproofTestStepState {
     Dormant,
+    Skipped,
     Failed,
     Passed,
 }
@@ -64,12 +72,14 @@ pub enum ToolproofTestStep {
         orig: String,
         hydrated_steps: Option<Vec<ToolproofTestStep>>,
         state: ToolproofTestStepState,
+        platforms: Option<Vec<ToolproofPlatform>>,
     },
     Instruction {
         step: ToolproofSegments,
         args: HashMap<String, serde_json::Value>,
         orig: String,
         state: ToolproofTestStepState,
+        platforms: Option<Vec<ToolproofPlatform>>,
     },
     Assertion {
         retrieval: ToolproofSegments,
@@ -77,6 +87,7 @@ pub enum ToolproofTestStep {
         args: HashMap<String, serde_json::Value>,
         orig: String,
         state: ToolproofTestStepState,
+        platforms: Option<Vec<ToolproofPlatform>>,
     },
     Snapshot {
         snapshot: ToolproofSegments,
@@ -84,6 +95,7 @@ pub enum ToolproofTestStep {
         args: HashMap<String, serde_json::Value>,
         orig: String,
         state: ToolproofTestStepState,
+        platforms: Option<Vec<ToolproofPlatform>>,
     },
 }
 
@@ -256,9 +268,12 @@ async fn main_inner() -> Result<(), ()> {
     }
 
     let handle_res = |universe: Arc<Universe>,
-                      (file, res): (&ToolproofTestFile, Result<(), ToolproofTestError>),
+                      (file, res): (
+        &ToolproofTestFile,
+        Result<ToolproofTestSuccess, ToolproofTestError>,
+    ),
                       started_at: Instant|
-     -> Result<(), HoldingError> {
+     -> Result<ToolproofTestSuccess, HoldingError> {
         let dur = if universe.ctx.params.porcelain {
             "".to_string()
         } else {
@@ -283,7 +298,20 @@ async fn main_inner() -> Result<(), ()> {
         let output_doc = write_yaml_snapshots(&file.original_source, &file);
 
         match res {
-            Ok(_) => {
+            Ok(success) => {
+                match success {
+                    ToolproofTestSuccess::Skipped => {
+                        let msg = format!(
+                            "{}{}{}",
+                            "⊝ ".green(),
+                            dur.green().dimmed(),
+                            &file.name.green()
+                        );
+                        println!("{}", style(msg).dim());
+                        return Ok(success);
+                    }
+                    ToolproofTestSuccess::Passed => { /* continue to standard logging */ }
+                }
                 if output_doc.trim() == file.original_source.trim() {
                     let msg = format!(
                         "{}{}{}",
@@ -292,7 +320,7 @@ async fn main_inner() -> Result<(), ()> {
                         &file.name.green()
                     );
                     println!("{}", msg.green());
-                    Ok(())
+                    Ok(success)
                 } else {
                     println!(
                         "{}",
@@ -367,12 +395,14 @@ async fn main_inner() -> Result<(), ()> {
                                     orig,
                                     hydrated_steps,
                                     state,
+                                    platforms,
                                 } => println!("{}", &e.red()),
                                 ToolproofTestStep::Instruction {
                                     step,
                                     args,
                                     orig,
                                     state,
+                                    platforms,
                                 } => {
                                     let closest = log_closest(
                                         "Instruction",
@@ -407,6 +437,7 @@ async fn main_inner() -> Result<(), ()> {
                                     args,
                                     orig,
                                     state,
+                                    platforms,
                                 } => {
                                     if !universe.retrievers.contains_key(&retrieval) {
                                         let closest = log_closest(
@@ -476,6 +507,7 @@ async fn main_inner() -> Result<(), ()> {
                                     args,
                                     orig,
                                     state,
+                                    platforms,
                                 } => todo!(),
                             }
                         }
@@ -536,7 +568,7 @@ async fn main_inner() -> Result<(), ()> {
         .await
         .into_iter()
         .map(|outer_err| match outer_err {
-            Ok(Ok(_)) => Ok(()),
+            Ok(Ok(success)) => Ok(success),
             Ok(Err(e)) => Err(e),
             Err(e) => panic!("Failed to await all tests: {e}"),
         })
@@ -608,12 +640,21 @@ async fn main_inner() -> Result<(), ()> {
     };
 
     let failing = results.iter().filter(|r| r.is_err()).count() - resolved_errors;
-    let passing = results.iter().filter(|r| r.is_ok()).count() + resolved_errors;
+    let passing = results
+        .iter()
+        .filter(|r| matches!(r, Ok(ToolproofTestSuccess::Passed)))
+        .count()
+        + resolved_errors;
+    let skipped = results
+        .iter()
+        .filter(|r| matches!(r, Ok(ToolproofTestSuccess::Skipped)))
+        .count();
 
     println!(
-        "{}\n{}",
+        "{}\n{}\n{}",
         style(&format!("Passing tests: {}", passing)).cyan(),
-        style(&format!("Failing tests: {}", failing)).cyan()
+        style(&format!("Failing tests: {}", failing)).cyan(),
+        style(&format!("Skipped tests: {}", skipped)).cyan(),
     );
 
     if failing > 0 {

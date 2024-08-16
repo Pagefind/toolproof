@@ -22,6 +22,7 @@ steps:
       ╎
       ╎Passing tests: 1
       ╎Failing tests: 0
+      ╎Skipped tests: 0
       ╎
       ╎All tests passed
   - step: I have a "my_test.toolproof.yml" file with the content {yaml}
@@ -61,5 +62,6 @@ steps:
       ╎
       ╎Passing tests: 0
       ╎Failing tests: 1
+      ╎Skipped tests: 0
       ╎
       ╎Some tests failed

@@ -73,6 +73,7 @@ impl BrowserTester {
                 let page = browser
                     .new_page(CreateTargetParams {
                         url: "about:blank".to_string(),
+                        for_tab: None,
                         width: None,
                         height: None,
                         browser_context_id: None,

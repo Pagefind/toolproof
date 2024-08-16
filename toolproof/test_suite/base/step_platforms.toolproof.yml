@@ -1,4 +1,4 @@
-name: Snapshots will snapshot files
+name: Toolproof step platform flags
 
 steps:
   - step: I have a "my_test.toolproof.yml" file with the content {yaml}
@@ -6,18 +6,13 @@ steps:
       name: Inner passing snapshot test
 
       steps:
-        - step: I have a "file.pretty" file with the content {text}
-          text: |-
-            Hello!
-              World!
-                Pretty!
-                  Text!
-        - snapshot: The file "file.pretty"
-          snapshot_content: |-
-            ╎Hello!
-            ╎  World!
-            ╎    Pretty!
-            ╎      Text!
+        - step: I run "uname"
+        - step: stdout should contain "Linux"
+          platforms: [linux]
+        - step: stdout should contain "Darwin"
+          platforms: [mac]
+        - step: stdout should contain "MINGW" # targeting GitHub actions Windows environment
+          platforms: [windows]
   - I run "%toolproof_path% --porcelain"
   - snapshot: stdout
     snapshot_content: |-

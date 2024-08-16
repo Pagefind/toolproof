@@ -11,6 +11,7 @@ steps:
   - I run "%toolproof_path%"
   - step: "stdout should contain 'Passing tests: 1'"
   - step: "stdout should contain 'Failing tests: 0'"
+  - step: "stdout should contain 'Skipped tests: 0'"
   - step: "stdout should contain 'All tests passed'"
   - stderr should be empty
   - step: I have a "my_test.toolproof.yml" file with the content {yaml}
@@ -23,5 +24,6 @@ steps:
   - I run "%toolproof_path%" and expect it to fail
   - step: "stdout should contain 'Passing tests: 0'"
   - step: "stdout should contain 'Failing tests: 1'"
+  - step: "stdout should contain 'Skipped tests: 0'"
   - step: "stdout should contain 'Some tests failed'"
   - stderr should be empty

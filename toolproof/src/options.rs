@@ -79,6 +79,10 @@ fn get_cli_matches() -> ArgMatches {
                 .num_args(0..),
         )
         .arg(
+            arg!(--"placeholder-delimiter" <DELIM> "Define which character delimits placeholders for test steps")
+                .required(false)
+        )
+        .arg(
             arg!(
                 -v --verbose ... "Print verbose logging while running tests"
             )
@@ -207,6 +211,11 @@ impl ToolproofParams {
 
         if let Some(concurrency) = cli_matches.get_one::<usize>("concurrency") {
             self.concurrency = *concurrency;
+        }
+
+        if let Some(placeholder_delimiter) = cli_matches.get_one::<String>("placeholder-delimiter")
+        {
+            self.placeholder_delimiter = placeholder_delimiter.clone();
         }
 
         if let Some(placeholders) = cli_matches.get_many::<String>("placeholders") {
