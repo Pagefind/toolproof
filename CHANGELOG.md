@@ -9,6 +9,8 @@
 
 ## Unreleased
 
+## v0.3.0 (August 16, 2024)
+
 * Adds platform flags for tests and individual steps
 * Adds default placeholders for directories
 
