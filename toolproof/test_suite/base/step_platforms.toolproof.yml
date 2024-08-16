@@ -7,9 +7,6 @@ steps:
 
       steps:
         - step: I run "uname"
-          platforms: [linux, mac]
-        - step: I run "ver"
-          platforms: [windows]
         - step: stdout should contain "Linux"
           platforms: [linux]
         - step: stdout should contain "Darwin"
