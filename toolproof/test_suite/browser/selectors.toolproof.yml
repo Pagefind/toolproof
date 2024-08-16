@@ -99,5 +99,6 @@ steps:
       ╎
       ╎Passing tests: 0
       ╎Failing tests: 1
+      ╎Skipped tests: 0
       ╎
       ╎Some tests failed

@@ -1,6 +1,6 @@
 use std::{collections::HashMap, hash::Hash};
 
-use crate::{errors::ToolproofInputError, options::ToolproofContext};
+use crate::{civilization::Civilization, errors::ToolproofInputError, options::ToolproofContext};
 
 use async_trait::async_trait;
 use serde_json::Value;
@@ -96,7 +96,7 @@ impl<'a> SegmentArgs<'a> {
         reference_instruction: &ToolproofSegments,
         supplied_instruction: &'a ToolproofSegments,
         supplied_args: &'a HashMap<String, serde_json::Value>,
-        ctx: Option<&ToolproofContext>,
+        civ: Option<&Civilization>,
     ) -> Result<SegmentArgs<'a>, ToolproofInputError> {
         let mut args = HashMap::new();
 
@@ -126,13 +126,33 @@ impl<'a> SegmentArgs<'a> {
             }
         }
 
+        let mut placeholders = civ
+            .map(|c| c.universe.ctx.params.placeholders.clone())
+            .unwrap_or_default();
+
+        if let Some(civ) = civ {
+            placeholders.insert(
+                "toolproof_process_directory".to_string(),
+                civ.universe
+                    .ctx
+                    .working_directory
+                    .to_string_lossy()
+                    .into_owned(),
+            );
+
+            if let Some(tmp_dir) = &civ.tmp_dir {
+                placeholders.insert(
+                    "toolproof_test_directory".to_string(),
+                    tmp_dir.path().to_string_lossy().into_owned(),
+                );
+            }
+        }
+
         Ok(Self {
             args,
-            placeholders: ctx
-                .map(|c| c.params.placeholders.clone())
-                .unwrap_or_default(),
-            placeholder_delim: ctx
-                .map(|c| c.params.placeholder_delimiter.clone())
+            placeholders,
+            placeholder_delim: civ
+                .map(|c| c.universe.ctx.params.placeholder_delimiter.clone())
                 .unwrap_or_default(),
         })
     }
@@ -210,12 +230,18 @@ fn replace_inside_value(value: &mut Value, delim: &str, placeholders: &HashMap<S
 
 #[cfg(test)]
 mod test {
+
+    use std::{collections::BTreeMap, sync::Arc};
+
+    use tokio::sync::OnceCell;
+
     use crate::{
         civilization::Civilization,
         definitions::{register_instructions, ToolproofInstruction},
         errors::ToolproofStepError,
         options::ToolproofParams,
         parser::parse_segments,
+        universe::Universe,
     };
 
     use super::*;
@@ -261,7 +287,30 @@ mod test {
             params,
         };
 
-        let args = SegmentArgs::build(&instruction_def, &user_instruction, &input, Some(&ctx))
+        let universe = Universe {
+            browser: OnceCell::new(),
+            tests: BTreeMap::new(),
+            instructions: HashMap::new(),
+            instruction_comparisons: vec![],
+            retrievers: HashMap::new(),
+            retriever_comparisons: vec![],
+            assertions: HashMap::new(),
+            assertion_comparisons: vec![],
+            ctx,
+        };
+
+        let civ = Civilization {
+            tmp_dir: None,
+            last_command_output: None,
+            assigned_server_port: None,
+            window: None,
+            threads: vec![],
+            handles: vec![],
+            env_vars: HashMap::new(),
+            universe: Arc::new(universe),
+        };
+
+        let args = SegmentArgs::build(&instruction_def, &user_instruction, &input, Some(&civ))
             .expect("Args built successfully");
 
         let Ok(str) = args.get_string("name") else {
