@@ -5,4 +5,4 @@ This project primarily exists to support CloudCannon's open-source tooling(e.g. 
 
 ## Usage
 
-Coming soon.
+https://toolproof.app/docs/
