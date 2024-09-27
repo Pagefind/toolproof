@@ -108,6 +108,12 @@ fn get_cli_matches() -> ArgMatches {
         )
         .arg(
             arg!(
+                -n --name <NAME> "Exact name of a test to run")
+                .long_help("case-sensitive")
+                .required(false)
+        )
+        .arg(
+            arg!(
                 --browser <IMPL> ... "Specify which browser to use when running browser automation tests"
             )
             .required(false)
@@ -144,6 +150,10 @@ pub struct ToolproofParams {
 
     /// Run all tests when in interactive mode
     pub all: bool,
+
+    /// Run a specific test
+    #[setting(env = "TOOLPROOF_RUN_NAME")]
+    pub run_name: Option<String>,
 
     /// Specify which browser to use when running browser automation tests
     #[setting(env = "TOOLPROOF_BROWSER")]
@@ -203,6 +213,10 @@ impl ToolproofParams {
 
         if cli_matches.get_flag("all") {
             self.all = true;
+        }
+
+        if let Some(name) = cli_matches.get_one::<String>("name") {
+            self.run_name = Some(name.clone());
         }
 
         if let Some(root) = cli_matches.get_one::<PathBuf>("root") {

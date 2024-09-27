@@ -9,6 +9,8 @@
 
 ## Unreleased
 
+* Adds `-n <name>` / `--name <name>` arguments to the CLI to run a specific test
+
 ## v0.3.0 (August 16, 2024)
 
 * Adds platform flags for tests and individual steps
