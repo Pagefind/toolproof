@@ -250,7 +250,14 @@ async fn main_inner() -> Result<(), ()> {
         ctx,
     });
 
-    let run_mode = if universe.ctx.params.interactive && !universe.ctx.params.all {
+    let run_mode = if let Some(run_name) = universe.ctx.params.run_name.as_ref() {
+        let Some((path, _)) = universe.tests.iter().find(|(_, t)| t.name == *run_name) else {
+            eprintln!("Test name {run_name} does not exist");
+            return Err(());
+        };
+
+        RunMode::One(path.clone())
+    } else if universe.ctx.params.interactive && !universe.ctx.params.all {
         match get_run_mode(&universe) {
             Ok(mode) => mode,
             Err(e) => {
