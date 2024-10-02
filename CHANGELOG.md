@@ -9,6 +9,8 @@
 
 ## Unreleased
 
+* Improve resilience launch a Chrome instance
+
 ## v0.4.0 (September 27, 2024)
 
 * Adds `-n <name>` / `--name <name>` arguments to the CLI to run a specific test
