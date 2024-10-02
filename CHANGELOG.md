@@ -9,6 +9,8 @@
 
 ## Unreleased
 
+## v0.4.1 (October 2, 2024)
+
 * Improve resilience launching a Chrome instance
 
 ## v0.4.0 (September 27, 2024)
