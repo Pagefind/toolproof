@@ -9,7 +9,7 @@
 
 ## Unreleased
 
-* Improve resilience launch a Chrome instance
+* Improve resilience launching a Chrome instance
 
 ## v0.4.0 (September 27, 2024)
 
