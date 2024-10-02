@@ -2,11 +2,12 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use chromiumoxide::cdp::browser_protocol::target::CreateTargetParams;
+use chromiumoxide::error::CdpError;
 use futures::StreamExt;
 use tokio::task::JoinHandle;
 
 use crate::civilization::Civilization;
-use crate::errors::{ToolproofInputError, ToolproofStepError};
+use crate::errors::{ToolproofInputError, ToolproofInternalError, ToolproofStepError};
 use crate::options::ToolproofParams;
 
 use super::{SegmentArgs, ToolproofInstruction, ToolproofRetriever};
@@ -29,14 +30,25 @@ pub enum BrowserTester {
     },
 }
 
+async fn try_launch_browser(mut max: usize) -> (Browser, chromiumoxide::Handler) {
+    let mut launch = Err(CdpError::NotFound);
+    while launch.is_err() && max > 0 {
+        max -= 1;
+        launch = Browser::launch(BrowserConfig::builder().build().unwrap()).await;
+    }
+    match launch {
+        Ok(res) => res,
+        Err(e) => {
+            panic!("Failed to launch browser due to error: {e}");
+        }
+    }
+}
+
 impl BrowserTester {
     async fn initialize(params: &ToolproofParams) -> Self {
         match params.browser {
             crate::options::ToolproofBrowserImpl::Chrome => {
-                let (browser, mut handler) =
-                    Browser::launch(BrowserConfig::builder().build().unwrap())
-                        .await
-                        .unwrap();
+                let (browser, mut handler) = try_launch_browser(3).await;
 
                 BrowserTester::Chrome {
                     browser: Arc::new(browser),
