@@ -8,7 +8,7 @@ use std::{collections::HashMap, time::Instant};
 use console::{style, Term};
 use futures::future::join_all;
 use normalize_path::NormalizePath;
-use parser::{ToolproofFileType, ToolproofPlatform};
+use parser::{parse_macro, ToolproofFileType, ToolproofPlatform};
 use schematic::color::owo::OwoColorize;
 use segments::ToolproofSegments;
 use similar_string::compare_similarity;
@@ -54,6 +54,16 @@ pub struct ToolproofTestFile {
     pub file_directory: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct ToolproofMacroFile {
+    pub macro_segments: ToolproofSegments,
+    pub macro_orig: String,
+    pub steps: Vec<ToolproofTestStep>,
+    pub original_source: String,
+    pub file_path: String,
+    pub file_directory: String,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum ToolproofTestSuccess {
     Skipped,
@@ -72,6 +82,14 @@ pub enum ToolproofTestStepState {
 pub enum ToolproofTestStep {
     Ref {
         other_file: String,
+        orig: String,
+        hydrated_steps: Option<Vec<ToolproofTestStep>>,
+        state: ToolproofTestStepState,
+        platforms: Option<Vec<ToolproofPlatform>>,
+    },
+    Macro {
+        step_macro: ToolproofSegments,
+        args: HashMap<String, serde_json::Value>,
         orig: String,
         hydrated_steps: Option<Vec<ToolproofTestStep>>,
         state: ToolproofTestStepState,
@@ -110,8 +128,11 @@ impl Display for ToolproofTestStep {
             Instruction { orig, .. } | Assertion { orig, .. } => {
                 write!(f, "{}", orig)
             }
+            Macro { orig, .. } => {
+                write!(f, "run steps from macro: {}", orig)
+            }
             Ref { orig, .. } => {
-                write!(f, "run steps from: {}", orig)
+                write!(f, "run steps from file: {}", orig)
             }
             Snapshot { orig, .. } => {
                 write!(f, "snapshot: {}", orig)
@@ -146,6 +167,7 @@ impl ToolproofTestStep {
 
         match self {
             Ref { state, .. }
+            | Macro { state, .. }
             | Instruction { state, .. }
             | Assertion { state, .. }
             | Snapshot { state, .. } => state.clone(),
@@ -208,6 +230,33 @@ async fn main_inner() -> Result<(), ()> {
 
     let start = Instant::now();
 
+    let mut errors = vec![];
+
+    let macro_glob = Glob::new("**/*.toolproof.macro.yml").expect("Valid glob");
+    let macro_walker = macro_glob
+        .walk(ctx.params.root.clone().unwrap_or(".".into()))
+        .flatten();
+
+    let loaded_macros = macro_walker
+        .map(|entry| {
+            let file = entry.path().to_path_buf();
+            async { (file.clone(), read_to_string(file).await) }
+        })
+        .collect::<Vec<_>>();
+
+    let macros = join_all(loaded_macros).await;
+
+    let all_macros: HashMap<_, _> = macros
+        .into_iter()
+        .filter_map(|(p, i)| match parse_macro(&i.unwrap(), p.clone()) {
+            Ok(f) => Some((f.macro_segments.clone(), f)),
+            Err(e) => {
+                errors.push(e);
+                return None;
+            }
+        })
+        .collect();
+
     let glob = Glob::new("**/*.toolproof.yml").expect("Valid glob");
     let walker = glob
         .walk(ctx.params.root.clone().unwrap_or(".".into()))
@@ -224,7 +273,6 @@ async fn main_inner() -> Result<(), ()> {
 
     let mut names_thus_far: Vec<(String, String)> = vec![];
 
-    let mut errors = vec![];
     let all_tests: BTreeMap<_, _> = files
         .into_iter()
         .filter_map(|(p, i)| {
@@ -259,6 +307,11 @@ async fn main_inner() -> Result<(), ()> {
         return Err(());
     }
 
+    let macro_comparisons: Vec<_> = all_macros
+        .keys()
+        .map(|k| k.get_comparison_string())
+        .collect();
+
     let all_instructions = register_instructions();
     let instruction_comparisons: Vec<_> = all_instructions
         .keys()
@@ -280,6 +333,8 @@ async fn main_inner() -> Result<(), ()> {
     let universe = Arc::new(Universe {
         browser: OnceCell::new(),
         tests: all_tests,
+        macros: all_macros,
+        macro_comparisons,
         instructions: all_instructions,
         instruction_comparisons,
         retrievers: all_retrievers,
@@ -436,20 +491,38 @@ async fn main_inner() -> Result<(), ()> {
                             log_err_preamble();
                             println!("{}", "--- ERROR ---".on_yellow().bold());
                             match &e.step {
-                                ToolproofTestStep::Ref {
-                                    other_file,
-                                    orig,
-                                    hydrated_steps,
-                                    state,
-                                    platforms,
-                                } => println!("{}", &e.red()),
-                                ToolproofTestStep::Instruction {
-                                    step,
-                                    args,
-                                    orig,
-                                    state,
-                                    platforms,
+                                ToolproofTestStep::Ref { .. } => println!("{}", &e.red()),
+                                ToolproofTestStep::Macro {
+                                    step_macro, orig, ..
                                 } => {
+                                    let closest = log_closest(
+                                        "Macro",
+                                        &orig,
+                                        &step_macro,
+                                        &universe.macro_comparisons,
+                                    );
+
+                                    let matches = closest
+                                        .into_iter()
+                                        .map(|m| {
+                                            let (actual_segments, _) = universe
+                                                .macros
+                                                .get_key_value(&m)
+                                                .expect("should exist in the global set");
+                                            format!(
+                                                "• {}",
+                                                style(actual_segments.get_as_string()).cyan()
+                                            )
+                                        })
+                                        .collect::<Vec<_>>();
+
+                                    if matches.is_empty() {
+                                        eprintln!("{}", "No similar macro found".red());
+                                    } else {
+                                        eprintln!("Closest macro:\n{}", matches.join("\n"));
+                                    }
+                                }
+                                ToolproofTestStep::Instruction { step, orig, .. } => {
                                     let closest = log_closest(
                                         "Instruction",
                                         &orig,
@@ -480,10 +553,8 @@ async fn main_inner() -> Result<(), ()> {
                                 ToolproofTestStep::Assertion {
                                     retrieval,
                                     assertion,
-                                    args,
                                     orig,
-                                    state,
-                                    platforms,
+                                    ..
                                 } => {
                                     if !universe.retrievers.contains_key(&retrieval) {
                                         let closest = log_closest(
