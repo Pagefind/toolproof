@@ -9,6 +9,8 @@
 
 ## Unreleased
 
+* Add `before_all` commands to the Toolproof config
+
 ## v0.4.1 (October 2, 2024)
 
 * Improve resilience launching a Chrome instance
