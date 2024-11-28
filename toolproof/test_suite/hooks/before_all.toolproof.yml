@@ -1,0 +1,31 @@
+name: Toolproof runs before_all hooks
+
+steps:
+  - step: I have a "misc_file" file with the content "lorem ipsum"
+  - step: I have a "toolproof.yml" file with the content {yaml}
+    yaml: |-
+      before_all:
+        - command: 'echo " donor" >> misc_file'
+  - step: I have a "my_test.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Inner modified test
+
+      steps:
+        - step: I run "cat %toolproof_test_directory%/misc_file"
+        - stdout should contain "lorem ipsum donor"
+  - I run "%toolproof_path% --porcelain"
+  - snapshot: stdout
+    snapshot_content: |-
+      ╎Running before_all command: echo " donor" >> misc_file
+      ╎
+      ╎Running tests
+      ╎
+      ╎✓ Inner modified test
+      ╎
+      ╎Finished running tests
+      ╎
+      ╎Passing tests: 1
+      ╎Failing tests: 0
+      ╎Skipped tests: 0
+      ╎
+      ╎All tests passed

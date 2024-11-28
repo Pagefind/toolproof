@@ -130,6 +130,12 @@ pub enum ToolproofBrowserImpl {
     Pagebrowse,
 }
 
+#[derive(Config, Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[config(rename_all = "snake_case")]
+pub struct ToolproofBeforeAll {
+    pub command: String,
+}
+
 #[derive(Config, Debug, Clone)]
 #[config(rename_all = "snake_case")]
 pub struct ToolproofParams {
@@ -171,6 +177,9 @@ pub struct ToolproofParams {
 
     /// Placeholder keys, and the values they should be replaced with
     pub placeholders: HashMap<String, String>,
+
+    /// Commands to run in the working directory before starting to run Toolproof tests
+    pub before_all: Vec<ToolproofBeforeAll>,
 }
 
 // The configuration object used internally

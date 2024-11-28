@@ -1,6 +1,8 @@
 use std::collections::BTreeMap;
 use std::fmt::Display;
+use std::process::Stdio;
 use std::sync::Arc;
+use std::time::Duration;
 use std::{collections::HashMap, time::Instant};
 
 use console::{style, Term};
@@ -11,6 +13,7 @@ use schematic::color::owo::OwoColorize;
 use segments::ToolproofSegments;
 use similar_string::compare_similarity;
 use tokio::fs::read_to_string;
+use tokio::process::Command;
 use tokio::sync::OnceCell;
 use wax::Glob;
 
@@ -166,6 +169,42 @@ fn closest_strings<'o>(target: &String, options: &'o Vec<String>) -> Vec<(&'o St
 
 async fn main_inner() -> Result<(), ()> {
     let ctx = configure();
+
+    for before in &ctx.params.before_all {
+        let before_cmd = &before.command;
+        let mut command = Command::new("sh");
+        command
+            .arg("-c")
+            .current_dir(&ctx.working_directory)
+            .arg(before_cmd);
+
+        command.stdout(Stdio::piped());
+        command.stderr(Stdio::piped());
+
+        println!(
+            "{}{}",
+            "Running before_all command: ".blue().bold(),
+            before_cmd.cyan().bold(),
+        );
+
+        let running = command
+            .spawn()
+            .map_err(|_| eprintln!("Failed to run command: {before_cmd}"))?;
+
+        let Ok(_) =
+            (match tokio::time::timeout(Duration::from_secs(300), running.wait_with_output()).await
+            {
+                Ok(out) => out,
+                Err(_) => {
+                    eprintln!("Failed to run command due to timeout: {before_cmd}");
+                    return Err(());
+                }
+            })
+        else {
+            eprintln!("Failed to run command: {before_cmd}");
+            return Err(());
+        };
+    }
 
     let start = Instant::now();
 
