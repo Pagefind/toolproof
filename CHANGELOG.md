@@ -9,6 +9,10 @@
 
 ## Unreleased
 
+## v0.6.0 (November 28, 2024)
+
+* Added macro feature to Toolproof
+
 ## v0.5.0 (November 28, 2024)
 
 * Add `before_all` commands to the Toolproof config

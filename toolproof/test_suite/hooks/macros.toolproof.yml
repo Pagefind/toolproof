@@ -1,0 +1,37 @@
+name: Toolproof runs macros
+
+steps:
+  - step: I have a "misc_file" file with the content "lorem ipsum"
+  - step: I have a "append.toolproof.macro.yml" file with the content {yaml}
+    yaml: |-
+      macro: I append {something} twice
+      steps:
+        - I run 'echo " %something%" >> %toolproof_test_directory%/misc_file'
+        - step: I run {cmd}
+          cmd: echo "and %something%" >> %toolproof_test_directory%/misc_file
+  - step: I have a "my_test.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Inner macro user
+
+      steps:
+        - macro: I append "yay" twice
+        - step: I run "cat %toolproof_test_directory%/misc_file"
+        - snapshot: stdout
+          snapshot_content: |-
+            ╎lorem ipsum yay
+            ╎and yay
+  - I run "%toolproof_path% --porcelain"
+  - snapshot: stdout
+    snapshot_content: |-
+      ╎
+      ╎Running tests
+      ╎
+      ╎✓ Inner macro user
+      ╎
+      ╎Finished running tests
+      ╎
+      ╎Passing tests: 1
+      ╎Failing tests: 0
+      ╎Skipped tests: 0
+      ╎
+      ╎All tests passed
