@@ -9,6 +9,8 @@
 
 ## Unreleased
 
+## v0.5.0 (November 28, 2024)
+
 * Add `before_all` commands to the Toolproof config
 
 ## v0.4.1 (October 2, 2024)
