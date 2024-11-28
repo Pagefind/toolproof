@@ -35,7 +35,7 @@ pub async fn run_toolproof_experiment(
         universe,
     };
 
-    let res = run_toolproof_steps(&input.file_directory, &mut input.steps, &mut civ).await;
+    let res = run_toolproof_steps(&input.file_directory, &mut input.steps, &mut civ, None).await;
 
     civ.shutdown().await;
 
@@ -47,6 +47,7 @@ async fn run_toolproof_steps(
     file_directory: &String,
     steps: &mut Vec<ToolproofTestStep>,
     civ: &mut Civilization<'_>,
+    transient_placeholders: Option<HashMap<String, String>>,
 ) -> Result<ToolproofTestSuccess, ToolproofTestError> {
     for cur_step in steps.iter_mut() {
         let marked_base_step = cur_step.clone();
@@ -94,6 +95,69 @@ async fn run_toolproof_steps(
                         &target_file.file_directory,
                         hydrated_steps.as_mut().unwrap(),
                         civ,
+                        None,
+                    )
+                    .await
+                    {
+                        Ok(_) => {
+                            *state = ToolproofTestStepState::Passed;
+                        }
+                        Err(e) => {
+                            *state = ToolproofTestStepState::Failed;
+                            return Err(e);
+                        }
+                    }
+                } else {
+                    *state = ToolproofTestStepState::Skipped;
+                }
+            }
+            crate::ToolproofTestStep::Macro {
+                step_macro,
+                args,
+                orig: _,
+                hydrated_steps,
+                state,
+                platforms,
+            } => {
+                let Some((reference_segments, defined_macro)) =
+                    civ.universe.macros.get_key_value(step_macro)
+                else {
+                    *state = ToolproofTestStepState::Failed;
+                    return Err(mark_and_return_step_error(
+                        ToolproofStepError::External(ToolproofInputError::NonexistentStep),
+                        state,
+                    ));
+                };
+                let variable_names = reference_segments.get_variable_names();
+
+                let defined_macro = defined_macro.clone();
+                let macro_args = SegmentArgs::build(
+                    reference_segments,
+                    step_macro,
+                    args,
+                    Some(&civ),
+                    transient_placeholders.as_ref(),
+                )
+                .map_err(|e| mark_and_return_step_error(e.into(), state))?;
+
+                let mut macro_placeholders = HashMap::with_capacity(variable_names.len());
+                for name in variable_names {
+                    match macro_args.get_string(&name) {
+                        Ok(res) => {
+                            macro_placeholders.insert(name, res);
+                        }
+                        Err(e) => return Err(mark_and_return_step_error(e.into(), state)),
+                    }
+                }
+
+                *hydrated_steps = Some(defined_macro.steps.clone());
+
+                if platform_matches(platforms) {
+                    match run_toolproof_steps(
+                        &defined_macro.file_directory,
+                        hydrated_steps.as_mut().unwrap(),
+                        civ,
+                        Some(macro_placeholders),
                     )
                     .await
                     {
@@ -126,9 +190,14 @@ async fn run_toolproof_steps(
                     ));
                 };
 
-                let instruction_args =
-                    SegmentArgs::build(reference_segments, step, args, Some(&civ))
-                        .map_err(|e| mark_and_return_step_error(e.into(), state))?;
+                let instruction_args = SegmentArgs::build(
+                    reference_segments,
+                    step,
+                    args,
+                    Some(&civ),
+                    transient_placeholders.as_ref(),
+                )
+                .map_err(|e| mark_and_return_step_error(e.into(), state))?;
 
                 if platform_matches(platforms) {
                     instruction
@@ -158,8 +227,14 @@ async fn run_toolproof_steps(
                     ));
                 };
 
-                let retrieval_args = SegmentArgs::build(reference_ret, retrieval, args, Some(&civ))
-                    .map_err(|e| mark_and_return_step_error(e.into(), state))?;
+                let retrieval_args = SegmentArgs::build(
+                    reference_ret,
+                    retrieval,
+                    args,
+                    Some(&civ),
+                    transient_placeholders.as_ref(),
+                )
+                .map_err(|e| mark_and_return_step_error(e.into(), state))?;
 
                 let value = if platform_matches(platforms) {
                     retrieval_step
@@ -179,9 +254,14 @@ async fn run_toolproof_steps(
                     ));
                 };
 
-                let assertion_args =
-                    SegmentArgs::build(reference_assert, assertion, args, Some(&civ))
-                        .map_err(|e| mark_and_return_step_error(e.into(), state))?;
+                let assertion_args = SegmentArgs::build(
+                    reference_assert,
+                    assertion,
+                    args,
+                    Some(&civ),
+                    transient_placeholders.as_ref(),
+                )
+                .map_err(|e| mark_and_return_step_error(e.into(), state))?;
 
                 if platform_matches(platforms) {
                     assertion_step
@@ -211,8 +291,14 @@ async fn run_toolproof_steps(
                     ));
                 };
 
-                let retrieval_args = SegmentArgs::build(reference_ret, snapshot, args, Some(&civ))
-                    .map_err(|e| mark_and_return_step_error(e.into(), state))?;
+                let retrieval_args = SegmentArgs::build(
+                    reference_ret,
+                    snapshot,
+                    args,
+                    Some(&civ),
+                    transient_placeholders.as_ref(),
+                )
+                .map_err(|e| mark_and_return_step_error(e.into(), state))?;
 
                 if platform_matches(platforms) {
                     let value = retrieval_step

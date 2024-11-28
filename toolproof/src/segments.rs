@@ -51,6 +51,16 @@ impl PartialEq for ToolproofSegments {
 impl Eq for ToolproofSegments {}
 
 impl ToolproofSegments {
+    pub fn get_variable_names(&self) -> Vec<String> {
+        self.segments
+            .iter()
+            .filter_map(|s| match s {
+                ToolproofSegment::Variable(name) => Some(name.clone()),
+                _ => None,
+            })
+            .collect()
+    }
+
     pub fn get_comparison_string(&self) -> String {
         use ToolproofSegment::*;
 
@@ -97,6 +107,7 @@ impl<'a> SegmentArgs<'a> {
         supplied_instruction: &'a ToolproofSegments,
         supplied_args: &'a HashMap<String, serde_json::Value>,
         civ: Option<&Civilization>,
+        transient_placeholders: Option<&HashMap<String, String>>,
     ) -> Result<SegmentArgs<'a>, ToolproofInputError> {
         let mut args = HashMap::new();
 
@@ -146,6 +157,10 @@ impl<'a> SegmentArgs<'a> {
                     tmp_dir.path().to_string_lossy().into_owned(),
                 );
             }
+        }
+
+        if let Some(transient_placeholders) = transient_placeholders {
+            placeholders.extend(transient_placeholders.clone().into_iter());
         }
 
         Ok(Self {
@@ -257,7 +272,7 @@ mod test {
 
         let input = HashMap::new();
 
-        let args = SegmentArgs::build(&segments_def, &user_instruction, &input, None)
+        let args = SegmentArgs::build(&segments_def, &user_instruction, &input, None, None)
             .expect("Args built successfully");
 
         let Ok(str) = args.get_string("name") else {
@@ -275,7 +290,7 @@ mod test {
             .expect("Valid instruction");
 
         let user_instruction =
-            parse_segments("I have a \"index.%ext%\" file with the contents ':)'")
+            parse_segments("I have a \"%prefix%index.%ext%\" file with the contents ':)'")
                 .expect("Valid instruction");
 
         let input = HashMap::new();
@@ -290,6 +305,8 @@ mod test {
         let universe = Universe {
             browser: OnceCell::new(),
             tests: BTreeMap::new(),
+            macros: HashMap::new(),
+            macro_comparisons: vec![],
             instructions: HashMap::new(),
             instruction_comparisons: vec![],
             retrievers: HashMap::new(),
@@ -310,8 +327,14 @@ mod test {
             universe: Arc::new(universe),
         };
 
-        let args = SegmentArgs::build(&instruction_def, &user_instruction, &input, Some(&civ))
-            .expect("Args built successfully");
+        let args = SegmentArgs::build(
+            &instruction_def,
+            &user_instruction,
+            &input,
+            Some(&civ),
+            Some(&HashMap::from([("prefix".to_string(), "__".to_string())])),
+        )
+        .expect("Args built successfully");
 
         let Ok(str) = args.get_string("name") else {
             panic!(
@@ -319,7 +342,7 @@ mod test {
                 args.get_string("name")
             );
         };
-        assert_eq!(str, "index.pdf");
+        assert_eq!(str, "__index.pdf");
     }
 
     // Segments should alias to each other regardless of the contents of their

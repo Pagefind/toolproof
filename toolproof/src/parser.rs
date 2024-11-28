@@ -7,11 +7,18 @@ use crate::{
     errors::ToolproofInputError,
     platforms::normalize_line_endings,
     segments::{ToolproofSegment, ToolproofSegments},
-    ToolproofTestFile, ToolproofTestStep, ToolproofTestStepState,
+    ToolproofMacroFile, ToolproofTestFile, ToolproofTestStep, ToolproofTestStepState,
 };
 
 struct ToolproofTestInput {
     parsed: RawToolproofTestFile,
+    original_source: String,
+    file_path: String,
+    file_directory: String,
+}
+
+struct ToolproofMacroInput {
+    parsed: RawToolproofMacroFile,
     original_source: String,
     file_path: String,
     file_directory: String,
@@ -41,11 +48,23 @@ struct RawToolproofTestFile {
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
+struct RawToolproofMacroFile {
+    r#macro: String,
+    steps: Vec<RawToolproofTestStep>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
 #[serde(untagged)]
 enum RawToolproofTestStep {
     Ref {
         r#ref: String,
         platforms: Option<Vec<ToolproofPlatform>>,
+    },
+    Macro {
+        r#macro: String,
+        platforms: Option<Vec<ToolproofPlatform>>,
+        #[serde(flatten)]
+        other: Map<String, Value>,
     },
     BareStep(String),
     StepWithParams {
@@ -83,6 +102,26 @@ impl TryFrom<ToolproofTestInput> for ToolproofTestFile {
     }
 }
 
+impl TryFrom<ToolproofMacroInput> for ToolproofMacroFile {
+    type Error = ToolproofInputError;
+
+    fn try_from(value: ToolproofMacroInput) -> Result<Self, Self::Error> {
+        let mut steps = Vec::with_capacity(value.parsed.steps.len());
+        for step in value.parsed.steps {
+            steps.push(step.try_into()?);
+        }
+
+        Ok(ToolproofMacroFile {
+            macro_segments: parse_segments(&value.parsed.r#macro)?,
+            macro_orig: value.parsed.r#macro,
+            steps,
+            original_source: value.original_source,
+            file_path: value.file_path,
+            file_directory: value.file_directory,
+        })
+    }
+}
+
 impl TryFrom<RawToolproofTestStep> for ToolproofTestStep {
     type Error = ToolproofInputError;
 
@@ -96,6 +135,18 @@ impl TryFrom<RawToolproofTestStep> for ToolproofTestStep {
                     .to_slash_lossy()
                     .into_owned(),
                 orig: r#ref,
+                hydrated_steps: None,
+                state: ToolproofTestStepState::Dormant,
+                platforms,
+            }),
+            RawToolproofTestStep::Macro {
+                r#macro,
+                platforms,
+                other,
+            } => Ok(ToolproofTestStep::Macro {
+                step_macro: parse_segments(&r#macro)?,
+                args: HashMap::from_iter(other.into_iter()),
+                orig: r#macro,
                 hydrated_steps: None,
                 state: ToolproofTestStepState::Dormant,
                 platforms,
@@ -145,6 +196,21 @@ fn parse_step(
             platforms,
         })
     }
+}
+
+pub fn parse_macro(s: &str, p: PathBuf) -> Result<ToolproofMacroFile, ToolproofInputError> {
+    let raw_macro = serde_yaml::from_str::<RawToolproofMacroFile>(s)?;
+
+    ToolproofMacroInput {
+        parsed: raw_macro,
+        original_source: normalize_line_endings(s),
+        file_path: p.to_slash_lossy().into_owned(),
+        file_directory: p
+            .parent()
+            .map(|p| p.to_slash_lossy().into_owned())
+            .unwrap_or_else(|| ".".to_string()),
+    }
+    .try_into()
 }
 
 pub fn parse_file(s: &str, p: PathBuf) -> Result<ToolproofTestFile, ToolproofInputError> {

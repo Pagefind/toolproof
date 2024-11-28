@@ -8,12 +8,14 @@ use crate::{
     },
     options::ToolproofContext,
     segments::ToolproofSegments,
-    ToolproofTestFile,
+    ToolproofMacroFile, ToolproofTestFile,
 };
 
 pub struct Universe<'u> {
     pub browser: OnceCell<BrowserTester>,
     pub tests: BTreeMap<String, ToolproofTestFile>,
+    pub macros: HashMap<ToolproofSegments, ToolproofMacroFile>,
+    pub macro_comparisons: Vec<String>,
     pub instructions: HashMap<ToolproofSegments, &'u dyn ToolproofInstruction>,
     pub instruction_comparisons: Vec<String>,
     pub retrievers: HashMap<ToolproofSegments, &'u dyn ToolproofRetriever>,

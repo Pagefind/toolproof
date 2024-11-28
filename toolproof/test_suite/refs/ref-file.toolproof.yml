@@ -56,12 +56,12 @@ steps:
       ╎
       ╎✘ Inner failing test
       ╎--- STEPS ---
-      ╎✓ run steps from: ../refs/common.toolproof.yml
+      ╎✓ run steps from file: ../refs/common.toolproof.yml
       ╎  ↳ ✓ I have a "public/index.html" file with the content "<p>Hello World</p>"
       ╎  ↳ ✓ I serve the directory "public"
       ╎  ↳ ✓ In my browser, I load "/"
       ╎✓ In my browser, I evaluate {js}
-      ╎✘ run steps from: ../refs/assert.toolproof.yml
+      ╎✘ run steps from file: ../refs/assert.toolproof.yml
       ╎  ↳ ✘ In my browser, I evaluate {js}
       ╎--- ERROR ---
       ╎Error in step "In my browser, I evaluate {js}":
