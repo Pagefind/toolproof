@@ -24,6 +24,10 @@ pub fn log_step_runs(steps: &Vec<ToolproofTestStep>, indent: usize) {
             ToolproofTestStep::Ref {
                 hydrated_steps: Some(inner_steps),
                 ..
+            }
+            | ToolproofTestStep::Macro {
+                hydrated_steps: Some(inner_steps),
+                ..
             } => {
                 log_step_runs(inner_steps, indent + 2);
             }

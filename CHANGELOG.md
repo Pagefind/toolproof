@@ -9,6 +9,8 @@
 
 ## Unreleased
 
+* Log inner macro steps
+
 ## v0.6.0 (November 28, 2024)
 
 * Added macro feature to Toolproof
