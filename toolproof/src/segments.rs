@@ -212,6 +212,16 @@ impl<'a> SegmentArgs<'a> {
             expected: "string".to_string(),
         });
     }
+
+    /// Process an arbitrary string as if it were one of the contained arguments
+    pub fn process_external_string(&self, raw_value: impl AsRef<str>) -> String {
+        let mut value = Value::String(raw_value.as_ref().to_string());
+        replace_inside_value(&mut value, &self.placeholder_delim, &self.placeholders);
+        match value {
+            Value::String(st) => st,
+            _ => unreachable!(),
+        }
+    }
 }
 
 fn replace_inside_value(value: &mut Value, delim: &str, placeholders: &HashMap<String, String>) {

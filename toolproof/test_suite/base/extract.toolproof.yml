@@ -1,0 +1,29 @@
+name: Extract to file
+
+steps:
+  - step: I have a "my_test.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Inner passing snapshot test
+
+      steps:
+        - I run 'echo "Aenean eu leo quam"'
+        - extract: stdout
+          extract_location: "%toolproof_test_directory%/file.txt"
+        - snapshot: The file "%toolproof_test_directory%/file.txt"
+          snapshot_content: |-
+            ╎Aenean eu leo quam
+  - I run "%toolproof_path% --porcelain"
+  - snapshot: stdout
+    snapshot_content: |-
+      ╎
+      ╎Running tests
+      ╎
+      ╎✓ Inner passing snapshot test
+      ╎
+      ╎Finished running tests
+      ╎
+      ╎Passing tests: 1
+      ╎Failing tests: 0
+      ╎Skipped tests: 0
+      ╎
+      ╎All tests passed

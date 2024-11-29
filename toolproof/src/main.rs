@@ -118,6 +118,14 @@ pub enum ToolproofTestStep {
         state: ToolproofTestStepState,
         platforms: Option<Vec<ToolproofPlatform>>,
     },
+    Extract {
+        extract: ToolproofSegments,
+        extract_location: String,
+        args: HashMap<String, serde_json::Value>,
+        orig: String,
+        state: ToolproofTestStepState,
+        platforms: Option<Vec<ToolproofPlatform>>,
+    },
 }
 
 impl Display for ToolproofTestStep {
@@ -136,6 +144,9 @@ impl Display for ToolproofTestStep {
             }
             Snapshot { orig, .. } => {
                 write!(f, "snapshot: {}", orig)
+            }
+            Extract { orig, .. } => {
+                write!(f, "extract: {}", orig)
             }
         }
     }
@@ -170,6 +181,7 @@ impl ToolproofTestStep {
             | Macro { state, .. }
             | Instruction { state, .. }
             | Assertion { state, .. }
+            | Extract { state, .. }
             | Snapshot { state, .. } => state.clone(),
         }
     }
@@ -623,6 +635,14 @@ async fn main_inner() -> Result<(), ()> {
                                         }
                                     }
                                 }
+                                ToolproofTestStep::Extract {
+                                    extract,
+                                    extract_location,
+                                    args,
+                                    orig,
+                                    state,
+                                    platforms,
+                                } => todo!(),
                                 ToolproofTestStep::Snapshot {
                                     snapshot,
                                     snapshot_content,
