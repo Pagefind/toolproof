@@ -135,6 +135,20 @@ steps:
 In future runs, Toolproof will ensure the retrieved value matches the `snapshot_content` key. Running Toolproof in
 interactive mode (`-i`) will also allow you to accept the changes and update the file automatically.
 
+### Snapshots
+
+Any Retrieval can also drive an extract. To do so, place the step inside an object under a `extract` key, alongside an `extract_location` key:
+```yaml
+steps:
+  - extract: stdout
+    extract_location: "%toolproof_process_directory%/extracted_stdout.txt"
+```
+
+After running Toolproof, the value will be written to that file.
+
+Toolproof never reads this file, so this step doesn't have any bearing on the success of the test.
+Instead, this is intended to pull information from tests to use in other tooling.
+
 ## Test environment
 
 Toolproof automatically runs tests in a temporary directory that is discarded at the end of a run.

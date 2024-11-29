@@ -7,7 +7,7 @@ weight: 6
 
 Toolproof provides the following Instructions:
 
-## Filesystem 
+## Filesystem
 
 Instructions:
 - `I have a {filename} file with the content {contents}`
@@ -16,7 +16,7 @@ Retrievals:
 - `The file {filename}`
   - Returns a string value
 
-## Process 
+## Process
 
 Instructions:
 - `I have the environment variable {name} set to {value}`
@@ -29,16 +29,18 @@ Retrievals:
 - `stderr`
   - Returns a string value
 
-## Hosting 
+## Hosting
 
 Instructions:
 - `I serve the directory {dir}`
 
-## Browser 
+## Browser
 
 Instructions:
 - `In my browser, I load {url}`
 - `In my browser, I evaluate {js}`
+- `In my browser, I screenshot the viewport to {filepath}`
+- `In my browser, I screenshot the element {selector} to {filepath}`
 
 Retrievals:
 - `In my browser, the result of {js}`
