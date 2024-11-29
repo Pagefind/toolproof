@@ -9,6 +9,11 @@
 
 ## Unreleased
 
+## v0.7.0 (November 29, 2024)
+
+* Add screenshot instructions to Toolproof
+* Add `extract` concept to pull retrievals to disk
+
 ## v0.6.1 (November 28, 2024)
 
 * Log inner macro steps

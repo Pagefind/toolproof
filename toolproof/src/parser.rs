@@ -79,6 +79,13 @@ enum RawToolproofTestStep {
         #[serde(flatten)]
         other: Map<String, Value>,
     },
+    Extract {
+        extract: String,
+        extract_location: String,
+        platforms: Option<Vec<ToolproofPlatform>>,
+        #[serde(flatten)]
+        other: Map<String, Value>,
+    },
 }
 
 impl TryFrom<ToolproofTestInput> for ToolproofTestFile {
@@ -166,6 +173,19 @@ impl TryFrom<RawToolproofTestStep> for ToolproofTestStep {
                 snapshot_content: None,
                 args: HashMap::from_iter(other.into_iter()),
                 orig: snapshot,
+                state: ToolproofTestStepState::Dormant,
+                platforms,
+            }),
+            RawToolproofTestStep::Extract {
+                extract,
+                extract_location,
+                platforms,
+                other,
+            } => Ok(ToolproofTestStep::Extract {
+                extract: parse_segments(&extract)?,
+                extract_location,
+                args: HashMap::from_iter(other.into_iter()),
+                orig: extract,
                 state: ToolproofTestStepState::Dormant,
                 platforms,
             }),

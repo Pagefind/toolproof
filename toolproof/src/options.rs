@@ -108,6 +108,12 @@ fn get_cli_matches() -> ArgMatches {
         )
         .arg(
             arg!(
+                -s --skiphooks ... "Skip running any hooks (e.g. before_all)"
+            )
+            .action(clap::ArgAction::SetTrue),
+        )
+        .arg(
+            arg!(
                 -n --name <NAME> "Exact name of a test to run")
                 .long_help("case-sensitive")
                 .required(false)
@@ -180,6 +186,10 @@ pub struct ToolproofParams {
 
     /// Commands to run in the working directory before starting to run Toolproof tests
     pub before_all: Vec<ToolproofBeforeAll>,
+
+    /// Skip running any of the before_all hooks
+    #[setting(env = "TOOLPROOF_SKIPHOOKS")]
+    pub skip_hooks: bool,
 }
 
 // The configuration object used internally
@@ -222,6 +232,10 @@ impl ToolproofParams {
 
         if cli_matches.get_flag("all") {
             self.all = true;
+        }
+
+        if cli_matches.get_flag("skiphooks") {
+            self.skip_hooks = true;
         }
 
         if let Some(name) = cli_matches.get_one::<String>("name") {

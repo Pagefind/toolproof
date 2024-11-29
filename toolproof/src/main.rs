@@ -118,6 +118,14 @@ pub enum ToolproofTestStep {
         state: ToolproofTestStepState,
         platforms: Option<Vec<ToolproofPlatform>>,
     },
+    Extract {
+        extract: ToolproofSegments,
+        extract_location: String,
+        args: HashMap<String, serde_json::Value>,
+        orig: String,
+        state: ToolproofTestStepState,
+        platforms: Option<Vec<ToolproofPlatform>>,
+    },
 }
 
 impl Display for ToolproofTestStep {
@@ -136,6 +144,9 @@ impl Display for ToolproofTestStep {
             }
             Snapshot { orig, .. } => {
                 write!(f, "snapshot: {}", orig)
+            }
+            Extract { orig, .. } => {
+                write!(f, "extract: {}", orig)
             }
         }
     }
@@ -170,6 +181,7 @@ impl ToolproofTestStep {
             | Macro { state, .. }
             | Instruction { state, .. }
             | Assertion { state, .. }
+            | Extract { state, .. }
             | Snapshot { state, .. } => state.clone(),
         }
     }
@@ -192,40 +204,45 @@ fn closest_strings<'o>(target: &String, options: &'o Vec<String>) -> Vec<(&'o St
 async fn main_inner() -> Result<(), ()> {
     let ctx = configure();
 
-    for before in &ctx.params.before_all {
-        let before_cmd = &before.command;
-        let mut command = Command::new("sh");
-        command
-            .arg("-c")
-            .current_dir(&ctx.working_directory)
-            .arg(before_cmd);
+    if ctx.params.skip_hooks {
+        println!("{}", "Skipping before_all commands".yellow().bold());
+    } else {
+        for before in &ctx.params.before_all {
+            let before_cmd = &before.command;
+            let mut command = Command::new("sh");
+            command
+                .arg("-c")
+                .current_dir(&ctx.working_directory)
+                .arg(before_cmd);
 
-        command.stdout(Stdio::piped());
-        command.stderr(Stdio::piped());
+            command.stdout(Stdio::piped());
+            command.stderr(Stdio::piped());
 
-        println!(
-            "{}{}",
-            "Running before_all command: ".blue().bold(),
-            before_cmd.cyan().bold(),
-        );
+            println!(
+                "{}{}",
+                "Running before_all command: ".blue().bold(),
+                before_cmd.cyan().bold(),
+            );
 
-        let running = command
-            .spawn()
-            .map_err(|_| eprintln!("Failed to run command: {before_cmd}"))?;
+            let running = command
+                .spawn()
+                .map_err(|_| eprintln!("Failed to run command: {before_cmd}"))?;
 
-        let Ok(_) =
-            (match tokio::time::timeout(Duration::from_secs(300), running.wait_with_output()).await
-            {
-                Ok(out) => out,
-                Err(_) => {
-                    eprintln!("Failed to run command due to timeout: {before_cmd}");
-                    return Err(());
-                }
-            })
-        else {
-            eprintln!("Failed to run command: {before_cmd}");
-            return Err(());
-        };
+            let Ok(_) =
+                (match tokio::time::timeout(Duration::from_secs(300), running.wait_with_output())
+                    .await
+                {
+                    Ok(out) => out,
+                    Err(_) => {
+                        eprintln!("Failed to run command due to timeout: {before_cmd}");
+                        return Err(());
+                    }
+                })
+            else {
+                eprintln!("Failed to run command: {before_cmd}");
+                return Err(());
+            };
+        }
     }
 
     let start = Instant::now();
@@ -618,6 +635,14 @@ async fn main_inner() -> Result<(), ()> {
                                         }
                                     }
                                 }
+                                ToolproofTestStep::Extract {
+                                    extract,
+                                    extract_location,
+                                    args,
+                                    orig,
+                                    state,
+                                    platforms,
+                                } => todo!(),
                                 ToolproofTestStep::Snapshot {
                                     snapshot,
                                     snapshot_content,

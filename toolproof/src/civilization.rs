@@ -74,6 +74,10 @@ impl<'u> Civilization<'u> {
         tmp_dir.join(PathBuf::from(filename))
     }
 
+    pub fn ensure_path(&mut self, file_path: &PathBuf) {
+        fs::create_dir_all(file_path.parent().unwrap()).unwrap();
+    }
+
     pub fn write_file(&mut self, filename: &str, contents: &str) {
         let file_path = self.tmp_file_path(filename);
         fs::create_dir_all(file_path.parent().unwrap()).unwrap();

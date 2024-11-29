@@ -317,6 +317,51 @@ async fn run_toolproof_steps(
                     *state = ToolproofTestStepState::Skipped;
                 }
             }
+            crate::ToolproofTestStep::Extract {
+                extract,
+                extract_location,
+                args,
+                orig: _,
+                state,
+                platforms,
+            } => {
+                let Some((reference_ret, retrieval_step)) =
+                    civ.universe.retrievers.get_key_value(extract)
+                else {
+                    return Err(mark_and_return_step_error(
+                        ToolproofStepError::External(ToolproofInputError::NonexistentStep),
+                        state,
+                    ));
+                };
+
+                let retrieval_args = SegmentArgs::build(
+                    reference_ret,
+                    extract,
+                    args,
+                    Some(&civ),
+                    transient_placeholders.as_ref(),
+                )
+                .map_err(|e| mark_and_return_step_error(e.into(), state))?;
+
+                if platform_matches(platforms) {
+                    let value = retrieval_step
+                        .run(&retrieval_args, civ)
+                        .await
+                        .map_err(|e| mark_and_return_step_error(e.into(), state))?;
+
+                    let value_content = match &value {
+                        serde_json::Value::String(s) => s.clone(),
+                        _ => serde_yaml::to_string(&value).expect("extract value is serializable"),
+                    };
+
+                    let location = retrieval_args.process_external_string(&extract_location);
+                    civ.write_file(&location, &value_content);
+
+                    *state = ToolproofTestStepState::Passed;
+                } else {
+                    *state = ToolproofTestStepState::Skipped;
+                }
+            }
         }
     }
 
