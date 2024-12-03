@@ -358,7 +358,7 @@ jobs:
         if: matrix.run_tests == true
         working-directory: ./toolproof
         # toolproof tests itself when run
-        run: cargo run -- --placeholders toolproof_path="$(pwd)/../target/debug/toolproof" -c 1
+        run: cargo run -- --placeholders toolproof_path="$(pwd)/../target/debug/toolproof" -c 1 --timeout 60
 
         # TODO: build and package pagebrowse
       - name: Create Release Assets
