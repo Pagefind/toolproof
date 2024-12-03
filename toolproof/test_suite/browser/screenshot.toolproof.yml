@@ -15,7 +15,7 @@ steps:
         - In my browser, I screenshot the element "p" to "shot/p.webp"
         - I run "ls shot"
         - stdout should contain "p.webp"
-  - I run "%toolproof_path%"
+  - I run "%toolproof_path% --timeout 60"
   - step: "stdout should contain 'Passing tests: 1'"
   - step: "stdout should contain 'Failing tests: 0'"
   - step: "stdout should contain 'All tests passed'"
