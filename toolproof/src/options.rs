@@ -114,6 +114,13 @@ fn get_cli_matches() -> ArgMatches {
         )
         .arg(
             arg!(
+                --timeout <NUM> "How long in seconds until a step times out"
+            )
+            .required(false)
+            .value_parser(value_parser!(u64)),
+        )
+        .arg(
+            arg!(
                 -n --name <NAME> "Exact name of a test to run")
                 .long_help("case-sensitive")
                 .required(false)
@@ -175,6 +182,11 @@ pub struct ToolproofParams {
     #[setting(env = "TOOLPROOF_CONCURRENCY")]
     #[setting(default = 10)]
     pub concurrency: usize,
+
+    /// How long in seconds until a step times out
+    #[setting(env = "TOOLPROOF_TIMEOUT")]
+    #[setting(default = 10)]
+    pub timeout: u64,
 
     /// What delimiter should be used when replacing placeholders
     #[setting(env = "TOOLPROOF_PLACEHOLDER_DELIM")]
@@ -248,6 +260,10 @@ impl ToolproofParams {
 
         if let Some(concurrency) = cli_matches.get_one::<usize>("concurrency") {
             self.concurrency = *concurrency;
+        }
+
+        if let Some(timeout) = cli_matches.get_one::<u64>("timeout") {
+            self.timeout = *timeout;
         }
 
         if let Some(placeholder_delimiter) = cli_matches.get_one::<String>("placeholder-delimiter")

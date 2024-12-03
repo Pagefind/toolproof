@@ -3,13 +3,14 @@ use futures::FutureExt;
 use normalize_path::NormalizePath;
 use similar_string::find_best_similarity;
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
+use tokio::time::{self, Duration};
 
 use console::style;
 
 use crate::{
     civilization::Civilization,
     definitions::ToolproofInstruction,
-    errors::{ToolproofInputError, ToolproofStepError, ToolproofTestError},
+    errors::{ToolproofInputError, ToolproofStepError, ToolproofTestError, ToolproofTestFailure},
     platforms::platform_matches,
     segments::SegmentArgs,
     universe::Universe,
@@ -49,6 +50,8 @@ async fn run_toolproof_steps(
     civ: &mut Civilization<'_>,
     transient_placeholders: Option<HashMap<String, String>>,
 ) -> Result<ToolproofTestSuccess, ToolproofTestError> {
+    let timeout_mins = civ.universe.ctx.params.timeout;
+    let timeout_dur = Duration::from_secs(timeout_mins);
     for cur_step in steps.iter_mut() {
         let marked_base_step = cur_step.clone();
         let marked_base_args = cur_step.args_pretty();
@@ -62,6 +65,16 @@ async fn run_toolproof_steps(
                     arg_str: marked_base_args.clone(),
                 }
             };
+        let timeout_and_return_step_error = |state: &mut ToolproofTestStepState| {
+            *state = ToolproofTestStepState::Failed;
+            ToolproofTestError {
+                err: ToolproofStepError::Assertion(ToolproofTestFailure::Custom {
+                    msg: format!("Step timed out after {timeout_mins}s"),
+                }),
+                step: marked_base_step.clone(),
+                arg_str: marked_base_args.clone(),
+            }
+        };
 
         match cur_step {
             crate::ToolproofTestStep::Ref {
@@ -200,10 +213,16 @@ async fn run_toolproof_steps(
                 .map_err(|e| mark_and_return_step_error(e.into(), state))?;
 
                 if platform_matches(platforms) {
-                    instruction
-                        .run(&instruction_args, civ)
-                        .await
-                        .map_err(|e| mark_and_return_step_error(e.into(), state))?;
+                    match time::timeout(timeout_dur, instruction.run(&instruction_args, civ)).await
+                    {
+                        Ok(Ok(_)) => {}
+                        Ok(Err(e)) => {
+                            return Err(mark_and_return_step_error(e.into(), state));
+                        }
+                        Err(_) => {
+                            return Err(timeout_and_return_step_error(state));
+                        }
+                    }
 
                     *state = ToolproofTestStepState::Passed;
                 } else {
@@ -237,10 +256,16 @@ async fn run_toolproof_steps(
                 .map_err(|e| mark_and_return_step_error(e.into(), state))?;
 
                 let value = if platform_matches(platforms) {
-                    retrieval_step
-                        .run(&retrieval_args, civ)
-                        .await
-                        .map_err(|e| mark_and_return_step_error(e.into(), state))?
+                    match time::timeout(timeout_dur, retrieval_step.run(&retrieval_args, civ)).await
+                    {
+                        Ok(Ok(val)) => val,
+                        Ok(Err(e)) => {
+                            return Err(mark_and_return_step_error(e.into(), state));
+                        }
+                        Err(_) => {
+                            return Err(timeout_and_return_step_error(state));
+                        }
+                    }
                 } else {
                     serde_json::Value::Null
                 };
@@ -264,10 +289,20 @@ async fn run_toolproof_steps(
                 .map_err(|e| mark_and_return_step_error(e.into(), state))?;
 
                 if platform_matches(platforms) {
-                    assertion_step
-                        .run(value, &assertion_args, civ)
-                        .await
-                        .map_err(|e| mark_and_return_step_error(e.into(), state))?;
+                    match time::timeout(
+                        timeout_dur,
+                        assertion_step.run(value, &assertion_args, civ),
+                    )
+                    .await
+                    {
+                        Ok(Ok(_)) => {}
+                        Ok(Err(e)) => {
+                            return Err(mark_and_return_step_error(e.into(), state));
+                        }
+                        Err(_) => {
+                            return Err(timeout_and_return_step_error(state));
+                        }
+                    }
 
                     *state = ToolproofTestStepState::Passed;
                 } else {
@@ -301,10 +336,18 @@ async fn run_toolproof_steps(
                 .map_err(|e| mark_and_return_step_error(e.into(), state))?;
 
                 if platform_matches(platforms) {
-                    let value = retrieval_step
-                        .run(&retrieval_args, civ)
-                        .await
-                        .map_err(|e| mark_and_return_step_error(e.into(), state))?;
+                    let value =
+                        match time::timeout(timeout_dur, retrieval_step.run(&retrieval_args, civ))
+                            .await
+                        {
+                            Ok(Ok(val)) => val,
+                            Ok(Err(e)) => {
+                                return Err(mark_and_return_step_error(e.into(), state));
+                            }
+                            Err(_) => {
+                                return Err(timeout_and_return_step_error(state));
+                            }
+                        };
 
                     let value_content = match &value {
                         serde_json::Value::String(s) => s.clone(),
@@ -344,10 +387,18 @@ async fn run_toolproof_steps(
                 .map_err(|e| mark_and_return_step_error(e.into(), state))?;
 
                 if platform_matches(platforms) {
-                    let value = retrieval_step
-                        .run(&retrieval_args, civ)
-                        .await
-                        .map_err(|e| mark_and_return_step_error(e.into(), state))?;
+                    let value =
+                        match time::timeout(timeout_dur, retrieval_step.run(&retrieval_args, civ))
+                            .await
+                        {
+                            Ok(Ok(val)) => val,
+                            Ok(Err(e)) => {
+                                return Err(mark_and_return_step_error(e.into(), state));
+                            }
+                            Err(_) => {
+                                return Err(timeout_and_return_step_error(state));
+                            }
+                        };
 
                     let value_content = match &value {
                         serde_json::Value::String(s) => s.clone(),
