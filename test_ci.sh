@@ -5,4 +5,4 @@ cd $SCRIPT_DIR
 
 TOOLPROOF=$(realpath "$SCRIPT_DIR/target/$1/toolproof")
 
-cargo run --release -- --placeholders toolproof_path="$TOOLPROOF" -c 1
+cargo run --release -- --placeholders toolproof_path="$TOOLPROOF" -c 1 --timeout 60

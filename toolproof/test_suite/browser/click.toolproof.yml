@@ -1,0 +1,22 @@
+name: Browser can click
+
+steps:
+  - step: I have a "setup.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Inner passing test
+
+      steps:
+        - step: I have a "public/index.html" file with the content {html}
+          html: |-
+            <p>Hello <button onclick="this.innerText='Test'">World</button></p>
+        - I serve the directory "public"
+        - In my browser, I load "/"
+        - In my browser, I click "World"
+        - step: In my browser, I evaluate {js}
+          js: |-
+            toolproof.assert_eq(document.querySelector("button").innerText, "Test");
+  - I run "%toolproof_path% --timeout 60"
+  - step: "stdout should contain 'Passing tests: 1'"
+  - step: "stdout should contain 'Failing tests: 0'"
+  - step: "stdout should contain 'All tests passed'"
+  - stderr should be empty

@@ -65,4 +65,4 @@ jobs:
       - name: Test CLI
         working-directory: ./toolproof
         # toolproof tests itself when run
-        run: cargo run -- --placeholders toolproof_path="$(pwd)/../target/debug/toolproof" -c 1
+        run: cargo run -- --placeholders toolproof_path="$(pwd)/../target/debug/toolproof" -c 1 --timeout 60
