@@ -26,11 +26,19 @@ use super::{SegmentArgs, ToolproofInstruction, ToolproofRetriever};
 use chromiumoxide::browser::{Browser, BrowserConfig};
 use pagebrowse::{PagebrowseBuilder, Pagebrowser, PagebrowserWindow};
 
+mod browser_specific;
+
 const HARNESS: &'static str = include_str!("./harness.js");
 const INIT_SCRIPT: &'static str = include_str!("./init.js");
 
 fn harnessed(js: String) -> String {
     HARNESS.replace("// insert_toolproof_inner_js", &js)
+}
+
+/// We want selector steps to timeout before the step itself does,
+/// since it provides a better error. This makes that more likely.
+fn auto_selector_timeout(civ: &Civilization) -> u64 {
+    civ.universe.ctx.params.timeout.saturating_sub(2).max(1)
 }
 
 pub enum BrowserTester {
@@ -67,29 +75,6 @@ async fn try_launch_browser(mut max: usize) -> (Browser, chromiumoxide::Handler)
         Err(e) => {
             panic!("Failed to launch browser due to error: {e}");
         }
-    }
-}
-
-fn chrome_image_format(filepath: &PathBuf) -> Result<CaptureScreenshotFormat, ToolproofStepError> {
-    match filepath.extension() {
-        Some(ext) => {
-            let ext = ext.to_string_lossy().to_lowercase();
-            match ext.as_str() {
-                "png" => Ok(CaptureScreenshotFormat::Png),
-                "webp" => Ok(CaptureScreenshotFormat::Webp),
-                "jpg" | "jpeg" => Ok(CaptureScreenshotFormat::Jpeg),
-                _ => Err(ToolproofStepError::External(
-                    ToolproofInputError::StepRequirementsNotMet {
-                        reason: "Image file extension must be png, webp, jpeg, or jpg".to_string(),
-                    },
-                )),
-            }
-        }
-        None => Err(ToolproofStepError::External(
-            ToolproofInputError::StepRequirementsNotMet {
-                reason: "Image file path must have an extension".to_string(),
-            },
-        )),
     }
 }
 
@@ -212,7 +197,7 @@ impl BrowserWindow {
     async fn screenshot_page(&self, filepath: PathBuf) -> Result<(), ToolproofStepError> {
         match self {
             BrowserWindow::Chrome(page) => {
-                let image_format = chrome_image_format(&filepath)?;
+                let image_format = browser_specific::chrome_image_format(&filepath)?;
 
                 page.save_screenshot(
                     ScreenshotParams {
@@ -241,16 +226,18 @@ impl BrowserWindow {
         &self,
         selector: &str,
         filepath: PathBuf,
+        timeout_secs: u64,
     ) -> Result<(), ToolproofStepError> {
         match self {
             BrowserWindow::Chrome(page) => {
-                let image_format = chrome_image_format(&filepath)?;
+                let image_format = browser_specific::chrome_image_format(&filepath)?;
 
-                let element = page.find_element(selector).await.map_err(|e| {
-                    ToolproofStepError::Assertion(ToolproofTestFailure::Custom {
-                        msg: format!("Element {selector} could not be screenshot: {e}"),
-                    })
-                })?;
+                let element = browser_specific::wait_for_chrome_element_selector(
+                    page,
+                    selector,
+                    timeout_secs,
+                )
+                .await?;
 
                 element
                     .save_screenshot(image_format, filepath)
@@ -270,6 +257,7 @@ impl BrowserWindow {
         &self,
         text: &str,
         interaction: InteractionType,
+        timeout_secs: u64,
     ) -> Result<(), ToolproofStepError> {
         match self {
             BrowserWindow::Chrome(page) => {
@@ -278,17 +266,20 @@ impl BrowserWindow {
                     format!("//{el}[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{text}')]")
                 };
                 let xpath = [el_xpath("a"), el_xpath("button"), el_xpath("input")].join(" | ");
-                let elements = page.find_xpaths(xpath).await.map_err(|e| {
-                    ToolproofStepError::Assertion(ToolproofTestFailure::Custom {
-                        msg: format!("Element with text '{text}' could not be clicked: {e}"),
-                    })
-                })?;
+
+                let elements = browser_specific::wait_for_chrome_xpath_selectors(
+                    page,
+                    &xpath,
+                    &format!("with text '{text}'"),
+                    timeout_secs,
+                )
+                .await?;
 
                 if elements.is_empty() {
                     return Err(ToolproofStepError::Assertion(
                         ToolproofTestFailure::Custom {
                             msg: format!(
-                                "Clickable element containing text '{text}' does not exist. Did you mean to use 'I click the selector'?"
+                                "Clickable element containing text '{text}' does not exist."
                             ),
                         },
                     ));
@@ -355,14 +346,16 @@ impl BrowserWindow {
         &self,
         selector: &str,
         interaction: InteractionType,
+        timeout_secs: u64,
     ) -> Result<(), ToolproofStepError> {
         match self {
             BrowserWindow::Chrome(page) => {
-                let element = page.find_element(selector).await.map_err(|e| {
-                    ToolproofStepError::Assertion(ToolproofTestFailure::Custom {
-                        msg: format!("Element {selector} could not be clicked: {e}"),
-                    })
-                })?;
+                let element = browser_specific::wait_for_chrome_element_selector(
+                    page,
+                    selector,
+                    timeout_secs,
+                )
+                .await?;
 
                 element.scroll_into_view().await.map_err(|e| {
                     ToolproofStepError::Assertion(ToolproofTestFailure::Custom {
@@ -644,7 +637,9 @@ mod screenshots {
                 ));
             };
 
-            window.screenshot_element(&selector, resolved_path).await
+            window
+                .screenshot_element(&selector, resolved_path, auto_selector_timeout(civ))
+                .await
         }
     }
 }
@@ -679,7 +674,9 @@ mod interactions {
                 ));
             };
 
-            window.interact_text(&text, InteractionType::Click).await
+            window
+                .interact_text(&text, InteractionType::Click, auto_selector_timeout(civ))
+                .await
         }
     }
 
@@ -710,7 +707,9 @@ mod interactions {
                 ));
             };
 
-            window.interact_text(&text, InteractionType::Hover).await
+            window
+                .interact_text(&text, InteractionType::Hover, auto_selector_timeout(civ))
+                .await
         }
     }
 
@@ -742,7 +741,11 @@ mod interactions {
             };
 
             window
-                .interact_selector(&selector, InteractionType::Click)
+                .interact_selector(
+                    &selector,
+                    InteractionType::Click,
+                    auto_selector_timeout(civ),
+                )
                 .await
         }
     }
@@ -775,7 +778,11 @@ mod interactions {
             };
 
             window
-                .interact_selector(&selector, InteractionType::Hover)
+                .interact_selector(
+                    &selector,
+                    InteractionType::Hover,
+                    auto_selector_timeout(civ),
+                )
                 .await
         }
     }
