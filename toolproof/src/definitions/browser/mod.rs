@@ -5,11 +5,14 @@ use async_trait::async_trait;
 use chromiumoxide::cdp::browser_protocol::page::{
     CaptureScreenshotFormat, CaptureScreenshotParams,
 };
-use chromiumoxide::cdp::browser_protocol::target::CreateTargetParams;
+use chromiumoxide::cdp::browser_protocol::target::{
+    CreateBrowserContextParams, CreateTargetParams,
+};
 use chromiumoxide::error::CdpError;
 use chromiumoxide::handler::viewport::Viewport;
 use chromiumoxide::page::ScreenshotParams;
 use futures::StreamExt;
+use tempfile::tempdir;
 use tokio::task::JoinHandle;
 
 use crate::civilization::Civilization;
@@ -45,6 +48,7 @@ async fn try_launch_browser(mut max: usize) -> (Browser, chromiumoxide::Handler)
         launch = Browser::launch(
             BrowserConfig::builder()
                 .headless_mode(chromiumoxide::browser::HeadlessMode::New)
+                .user_data_dir(tempdir().expect("testing on a system with a temp dir"))
                 .viewport(Some(Viewport {
                     width: 1600,
                     height: 900,
@@ -89,6 +93,11 @@ fn chrome_image_format(filepath: &PathBuf) -> Result<CaptureScreenshotFormat, To
     }
 }
 
+enum InteractionType {
+    Click,
+    Hover,
+}
+
 impl BrowserTester {
     async fn initialize(params: &ToolproofParams) -> Self {
         match params.browser {
@@ -127,13 +136,22 @@ impl BrowserTester {
                 BrowserWindow::Pagebrowse(pb.get_window().await.unwrap())
             }
             BrowserTester::Chrome { browser, .. } => {
+                let context = browser
+                    .create_browser_context(CreateBrowserContextParams {
+                        dispose_on_detach: Some(true),
+                        proxy_server: None,
+                        proxy_bypass_list: None,
+                        origins_with_universal_network_access: None,
+                    })
+                    .await
+                    .unwrap();
                 let page = browser
                     .new_page(CreateTargetParams {
                         url: "about:blank".to_string(),
                         for_tab: None,
                         width: None,
                         height: None,
-                        browser_context_id: None,
+                        browser_context_id: Some(context),
                         enable_begin_frame_control: None,
                         new_window: None,
                         background: None,
@@ -243,6 +261,143 @@ impl BrowserWindow {
             BrowserWindow::Pagebrowse(_) => Err(ToolproofStepError::Internal(
                 ToolproofInternalError::Custom {
                     msg: "Screenshots not yet implemented for Pagebrowse".to_string(),
+                },
+            )),
+        }
+    }
+
+    async fn interact_text(
+        &self,
+        text: &str,
+        interaction: InteractionType,
+    ) -> Result<(), ToolproofStepError> {
+        match self {
+            BrowserWindow::Chrome(page) => {
+                let text = text.to_lowercase().replace('\'', "\\'");
+                let el_xpath = |el: &str| {
+                    format!("//{el}[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{text}')]")
+                };
+                let xpath = [el_xpath("a"), el_xpath("button"), el_xpath("input")].join(" | ");
+                let elements = page.find_xpaths(xpath).await.map_err(|e| {
+                    ToolproofStepError::Assertion(ToolproofTestFailure::Custom {
+                        msg: format!("Element with text '{text}' could not be clicked: {e}"),
+                    })
+                })?;
+
+                if elements.is_empty() {
+                    return Err(ToolproofStepError::Assertion(
+                        ToolproofTestFailure::Custom {
+                            msg: format!(
+                                "Clickable element containing text '{text}' does not exist. Did you mean to use 'I click the selector'?"
+                            ),
+                        },
+                    ));
+                }
+
+                if elements.len() > 1 {
+                    return Err(ToolproofStepError::Assertion(
+                        ToolproofTestFailure::Custom {
+                            msg: format!(
+                                "Found more than one clickable element containing text '{text}'."
+                            ),
+                        },
+                    ));
+                }
+
+                elements[0].scroll_into_view().await.map_err(|e| {
+                    ToolproofStepError::Assertion(ToolproofTestFailure::Custom {
+                        msg: format!(
+                            "Element with text '{text}' could not be scrolled into view: {e}"
+                        ),
+                    })
+                })?;
+
+                let center = elements[0].clickable_point().await.map_err(|e| {
+                    ToolproofStepError::Assertion(ToolproofTestFailure::Custom {
+                        msg: format!(
+                            "Could not find a clickable point for element with text '{text}': {e}"
+                        ),
+                    })
+                })?;
+
+                match interaction {
+                    InteractionType::Click => {
+                        page.click(center).await.map_err(|e| {
+                            ToolproofStepError::Assertion(ToolproofTestFailure::Custom {
+                                msg: format!(
+                                    "Element with text '{text}' could not be clicked: {e}"
+                                ),
+                            })
+                        })?;
+                    }
+                    InteractionType::Hover => {
+                        page.move_mouse(center).await.map_err(|e| {
+                            ToolproofStepError::Assertion(ToolproofTestFailure::Custom {
+                                msg: format!(
+                                    "Element with text '{text}' could not be hovered: {e}"
+                                ),
+                            })
+                        })?;
+                    }
+                }
+
+                Ok(())
+            }
+            BrowserWindow::Pagebrowse(_) => Err(ToolproofStepError::Internal(
+                ToolproofInternalError::Custom {
+                    msg: "Clicks not yet implemented for Pagebrowse".to_string(),
+                },
+            )),
+        }
+    }
+
+    async fn interact_selector(
+        &self,
+        selector: &str,
+        interaction: InteractionType,
+    ) -> Result<(), ToolproofStepError> {
+        match self {
+            BrowserWindow::Chrome(page) => {
+                let element = page.find_element(selector).await.map_err(|e| {
+                    ToolproofStepError::Assertion(ToolproofTestFailure::Custom {
+                        msg: format!("Element {selector} could not be clicked: {e}"),
+                    })
+                })?;
+
+                element.scroll_into_view().await.map_err(|e| {
+                    ToolproofStepError::Assertion(ToolproofTestFailure::Custom {
+                        msg: format!("Element {selector} could not be scrolled into view: {e}"),
+                    })
+                })?;
+
+                let center = element.clickable_point().await.map_err(|e| {
+                    ToolproofStepError::Assertion(ToolproofTestFailure::Custom {
+                        msg: format!("Could not find a clickable point for {selector}: {e}"),
+                    })
+                })?;
+
+                match interaction {
+                    InteractionType::Click => {
+                        page.click(center).await.map_err(|e| {
+                            ToolproofStepError::Assertion(ToolproofTestFailure::Custom {
+                                msg: format!("Element {selector} could not be clicked: {e}"),
+                            })
+                        })?;
+                    }
+                    InteractionType::Hover => {
+                        page.move_mouse(center).await.map_err(|e| {
+                            ToolproofStepError::Assertion(ToolproofTestFailure::Custom {
+                                msg: format!("Element {selector} could not be hovered: {e}"),
+                            })
+                        })?;
+                    }
+                }
+
+                Ok(())
+            }
+            BrowserWindow::Pagebrowse(_) => Err(ToolproofStepError::Internal(
+                ToolproofInternalError::Custom {
+                    msg: "Clicks not yet implemented for Pagebrowse".to_string(),
                 },
             )),
         }
@@ -490,6 +645,138 @@ mod screenshots {
             };
 
             window.screenshot_element(&selector, resolved_path).await
+        }
+    }
+}
+
+mod interactions {
+    use super::*;
+
+    pub struct ClickText;
+
+    inventory::submit! {
+        &ClickText as &dyn ToolproofInstruction
+    }
+
+    #[async_trait]
+    impl ToolproofInstruction for ClickText {
+        fn segments(&self) -> &'static str {
+            "In my browser, I click {text}"
+        }
+
+        async fn run(
+            &self,
+            args: &SegmentArgs<'_>,
+            civ: &mut Civilization,
+        ) -> Result<(), ToolproofStepError> {
+            let text = args.get_string("text")?;
+
+            let Some(window) = civ.window.as_ref() else {
+                return Err(ToolproofStepError::External(
+                    ToolproofInputError::StepRequirementsNotMet {
+                        reason: "no page has been loaded into the browser for this test".into(),
+                    },
+                ));
+            };
+
+            window.interact_text(&text, InteractionType::Click).await
+        }
+    }
+
+    pub struct HoverText;
+
+    inventory::submit! {
+        &HoverText as &dyn ToolproofInstruction
+    }
+
+    #[async_trait]
+    impl ToolproofInstruction for HoverText {
+        fn segments(&self) -> &'static str {
+            "In my browser, I hover {text}"
+        }
+
+        async fn run(
+            &self,
+            args: &SegmentArgs<'_>,
+            civ: &mut Civilization,
+        ) -> Result<(), ToolproofStepError> {
+            let text = args.get_string("text")?;
+
+            let Some(window) = civ.window.as_ref() else {
+                return Err(ToolproofStepError::External(
+                    ToolproofInputError::StepRequirementsNotMet {
+                        reason: "no page has been loaded into the browser for this test".into(),
+                    },
+                ));
+            };
+
+            window.interact_text(&text, InteractionType::Hover).await
+        }
+    }
+
+    pub struct ClickSelector;
+
+    inventory::submit! {
+        &ClickSelector as &dyn ToolproofInstruction
+    }
+
+    #[async_trait]
+    impl ToolproofInstruction for ClickSelector {
+        fn segments(&self) -> &'static str {
+            "In my browser, I click the selector {selector}"
+        }
+
+        async fn run(
+            &self,
+            args: &SegmentArgs<'_>,
+            civ: &mut Civilization,
+        ) -> Result<(), ToolproofStepError> {
+            let selector = args.get_string("selector")?;
+
+            let Some(window) = civ.window.as_ref() else {
+                return Err(ToolproofStepError::External(
+                    ToolproofInputError::StepRequirementsNotMet {
+                        reason: "no page has been loaded into the browser for this test".into(),
+                    },
+                ));
+            };
+
+            window
+                .interact_selector(&selector, InteractionType::Click)
+                .await
+        }
+    }
+
+    pub struct HoverSelector;
+
+    inventory::submit! {
+        &HoverSelector as &dyn ToolproofInstruction
+    }
+
+    #[async_trait]
+    impl ToolproofInstruction for HoverSelector {
+        fn segments(&self) -> &'static str {
+            "In my browser, I hover the selector {selector}"
+        }
+
+        async fn run(
+            &self,
+            args: &SegmentArgs<'_>,
+            civ: &mut Civilization,
+        ) -> Result<(), ToolproofStepError> {
+            let selector = args.get_string("selector")?;
+
+            let Some(window) = civ.window.as_ref() else {
+                return Err(ToolproofStepError::External(
+                    ToolproofInputError::StepRequirementsNotMet {
+                        reason: "no page has been loaded into the browser for this test".into(),
+                    },
+                ));
+            };
+
+            window
+                .interact_selector(&selector, InteractionType::Hover)
+                .await
         }
     }
 }

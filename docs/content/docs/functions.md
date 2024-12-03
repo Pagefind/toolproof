@@ -41,6 +41,10 @@ Instructions:
 - `In my browser, I evaluate {js}`
 - `In my browser, I screenshot the viewport to {filepath}`
 - `In my browser, I screenshot the element {selector} to {filepath}`
+- `In my browser, I click {text}`
+- `In my browser, I hover {text}`
+- `In my browser, I click the selector {selector}`
+- `In my browser, I hover the selector {selector}`
 
 Retrievals:
 - `In my browser, the result of {js}`
