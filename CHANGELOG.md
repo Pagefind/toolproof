@@ -9,6 +9,8 @@
 
 ## Unreleased
 
+## v0.8.0 (December 3, 2024)
+
 * Add instructions for clicking and hovering elements on a page
 * Added a timeout to all test steps
 
