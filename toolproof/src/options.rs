@@ -121,6 +121,13 @@ fn get_cli_matches() -> ArgMatches {
         )
         .arg(
             arg!(
+                --"browser-timeout" <NUM> "How long in seconds until actions in a browser time out"
+            )
+            .required(false)
+            .value_parser(value_parser!(u64)),
+        )
+        .arg(
+            arg!(
                 -n --name <NAME> "Exact name of a test to run")
                 .long_help("case-sensitive")
                 .required(false)
@@ -187,6 +194,11 @@ pub struct ToolproofParams {
     #[setting(env = "TOOLPROOF_TIMEOUT")]
     #[setting(default = 10)]
     pub timeout: u64,
+
+    /// How long in seconds until actions in a browser time out
+    #[setting(env = "TOOLPROOF_BROWSER_TIMEOUT")]
+    #[setting(default = 8)]
+    pub browser_timeout: u64,
 
     /// What delimiter should be used when replacing placeholders
     #[setting(env = "TOOLPROOF_PLACEHOLDER_DELIM")]
@@ -264,6 +276,10 @@ impl ToolproofParams {
 
         if let Some(timeout) = cli_matches.get_one::<u64>("timeout") {
             self.timeout = *timeout;
+        }
+
+        if let Some(browser_timeout) = cli_matches.get_one::<u64>("browser-timeout") {
+            self.browser_timeout = *browser_timeout;
         }
 
         if let Some(placeholder_delimiter) = cli_matches.get_one::<String>("placeholder-delimiter")

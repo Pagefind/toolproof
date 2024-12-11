@@ -35,6 +35,10 @@ fn harnessed(js: String) -> String {
     HARNESS.replace("// insert_toolproof_inner_js", &js)
 }
 
+fn init_script(timeout_secs: u64) -> String {
+    INIT_SCRIPT.replace("DEFAULT_TIMEOUT", &(timeout_secs * 1000).to_string())
+}
+
 /// We want selector steps to timeout before the step itself does,
 /// since it provides a better error. This makes that more likely.
 fn auto_selector_timeout(civ: &Civilization) -> u64 {
@@ -45,6 +49,7 @@ pub enum BrowserTester {
     Pagebrowse(Arc<Pagebrowser>),
     Chrome {
         browser: Arc<Browser>,
+        browser_timeout: u64,
         event_thread: Arc<JoinHandle<Result<(), std::io::Error>>>,
     },
 }
@@ -91,6 +96,7 @@ impl BrowserTester {
 
                 BrowserTester::Chrome {
                     browser: Arc::new(browser),
+                    browser_timeout: params.browser_timeout,
                     event_thread: Arc::new(tokio::task::spawn(async move {
                         loop {
                             let _ = handler.next().await.unwrap();
@@ -105,7 +111,7 @@ impl BrowserTester {
                         "{}/../bin/pagebrowse_manager",
                         env!("CARGO_MANIFEST_DIR")
                     ))
-                    .init_script(INIT_SCRIPT.to_string())
+                    .init_script(init_script(params.browser_timeout))
                     .build()
                     .await
                     .expect("Can't build the pagebrowser");
@@ -120,7 +126,11 @@ impl BrowserTester {
             BrowserTester::Pagebrowse(pb) => {
                 BrowserWindow::Pagebrowse(pb.get_window().await.unwrap())
             }
-            BrowserTester::Chrome { browser, .. } => {
+            BrowserTester::Chrome {
+                browser,
+                browser_timeout,
+                ..
+            } => {
                 let context = browser
                     .create_browser_context(CreateBrowserContextParams {
                         dispose_on_detach: Some(true),
@@ -143,7 +153,7 @@ impl BrowserTester {
                     })
                     .await
                     .unwrap();
-                page.evaluate_on_new_document(INIT_SCRIPT.to_string())
+                page.evaluate_on_new_document(init_script(*browser_timeout))
                     .await
                     .expect("Could not set initialization js");
                 BrowserWindow::Chrome(page)
