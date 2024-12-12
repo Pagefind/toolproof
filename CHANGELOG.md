@@ -9,6 +9,8 @@
 
 ## Unreleased
 
+* Made the browser click/hover steps more resilient to DOM nodes detaching mid-action
+
 ## v0.10.0 (December 12, 2024)
 
 * Add `browser-timeout` / `browser_timeout` setting that changes the default timeout for browser actions such as `toolproof.querySelector()`

@@ -8,6 +8,7 @@ use chromiumoxide::cdp::browser_protocol::page::{
 use chromiumoxide::cdp::browser_protocol::target::{
     CreateBrowserContextParams, CreateTargetParams,
 };
+use chromiumoxide::cdp::js_protocol::runtime::RemoteObjectType;
 use chromiumoxide::error::CdpError;
 use chromiumoxide::handler::viewport::Viewport;
 use chromiumoxide::page::ScreenshotParams;
@@ -277,69 +278,95 @@ impl BrowserWindow {
                 };
                 let xpath = [el_xpath("a"), el_xpath("button"), el_xpath("input")].join(" | ");
 
-                let elements = browser_specific::wait_for_chrome_xpath_selectors(
-                    page,
-                    &xpath,
-                    &format!("with text '{text}'"),
-                    timeout_secs,
-                )
-                .await?;
+                loop {
+                    let elements = browser_specific::wait_for_chrome_xpath_selectors(
+                        page,
+                        &xpath,
+                        &format!("with text '{text}'"),
+                        timeout_secs,
+                    )
+                    .await?;
 
-                if elements.is_empty() {
-                    return Err(ToolproofStepError::Assertion(
-                        ToolproofTestFailure::Custom {
-                            msg: format!(
-                                "Clickable element containing text '{text}' does not exist."
-                            ),
-                        },
-                    ));
-                }
+                    if elements.is_empty() {
+                        return Err(ToolproofStepError::Assertion(
+                            ToolproofTestFailure::Custom {
+                                msg: format!(
+                                    "Clickable element containing text '{text}' does not exist."
+                                ),
+                            },
+                        ));
+                    }
 
-                if elements.len() > 1 {
-                    return Err(ToolproofStepError::Assertion(
-                        ToolproofTestFailure::Custom {
-                            msg: format!(
+                    if elements.len() > 1 {
+                        return Err(ToolproofStepError::Assertion(
+                            ToolproofTestFailure::Custom {
+                                msg: format!(
                                 "Found more than one clickable element containing text '{text}'."
                             ),
-                        },
-                    ));
-                }
-
-                elements[0].scroll_into_view().await.map_err(|e| {
-                    ToolproofStepError::Assertion(ToolproofTestFailure::Custom {
-                        msg: format!(
-                            "Element with text '{text}' could not be scrolled into view: {e}"
-                        ),
-                    })
-                })?;
-
-                let center = elements[0].clickable_point().await.map_err(|e| {
-                    ToolproofStepError::Assertion(ToolproofTestFailure::Custom {
-                        msg: format!(
-                            "Could not find a clickable point for element with text '{text}': {e}"
-                        ),
-                    })
-                })?;
-
-                match interaction {
-                    InteractionType::Click => {
-                        page.click(center).await.map_err(|e| {
-                            ToolproofStepError::Assertion(ToolproofTestFailure::Custom {
-                                msg: format!(
-                                    "Element with text '{text}' could not be clicked: {e}"
-                                ),
-                            })
-                        })?;
+                            },
+                        ));
                     }
-                    InteractionType::Hover => {
-                        page.move_mouse(center).await.map_err(|e| {
-                            ToolproofStepError::Assertion(ToolproofTestFailure::Custom {
-                                msg: format!(
-                                    "Element with text '{text}' could not be hovered: {e}"
-                                ),
-                            })
-                        })?;
+
+                    if let Err(e) = elements[0].scroll_into_view().await {
+                        match e {
+                            // If the element was detached from the DOM after the time we selected it,
+                            // we want to restart this section and select a new element.
+                            CdpError::ScrollingFailed(msg) if msg.contains("detached") => continue,
+                            _ => {
+                                return Err(ToolproofStepError::Assertion(ToolproofTestFailure::Custom {
+                                    msg: format!(
+                                        "Element with text '{text}' could not be scrolled into view: {e}"
+                                    ),
+                                }))
+                            }
+                        }
                     }
+
+                    let center = match elements[0].clickable_point().await {
+                        Ok(c) => c,
+                        Err(e) => {
+                            if let Ok(res) = elements[0]
+                                .call_js_fn("async function() { return this.isConnected; }", true)
+                                .await
+                            {
+                                // If we can't find the center due to the element now being detached from the DOM,
+                                // we want to restart this section and select a new element.
+                                if matches!(res.result.value, Some(serde_json::Value::Bool(false)))
+                                {
+                                    continue;
+                                }
+                            }
+
+                            return Err(ToolproofStepError::Assertion(ToolproofTestFailure::Custom {
+                                msg: format!(
+                                "Could not find a clickable point for element with text '{text}': {e}"
+                            ),
+                            }));
+                        }
+                    };
+
+                    match interaction {
+                        InteractionType::Click => {
+                            page.click(center).await.map_err(|e| {
+                                ToolproofStepError::Assertion(ToolproofTestFailure::Custom {
+                                    msg: format!(
+                                        "Element with text '{text}' could not be clicked: {e}"
+                                    ),
+                                })
+                            })?;
+                        }
+                        InteractionType::Hover => {
+                            page.move_mouse(center).await.map_err(|e| {
+                                ToolproofStepError::Assertion(ToolproofTestFailure::Custom {
+                                    msg: format!(
+                                        "Element with text '{text}' could not be hovered: {e}"
+                                    ),
+                                })
+                            })?;
+                        }
+                    }
+
+                    break;
                 }
 
                 Ok(())
@@ -360,40 +387,73 @@ impl BrowserWindow {
     ) -> Result<(), ToolproofStepError> {
         match self {
             BrowserWindow::Chrome(page) => {
-                let element = browser_specific::wait_for_chrome_element_selector(
-                    page,
-                    selector,
-                    timeout_secs,
-                )
-                .await?;
+                loop {
+                    let element = browser_specific::wait_for_chrome_element_selector(
+                        page,
+                        selector,
+                        timeout_secs,
+                    )
+                    .await?;
 
-                element.scroll_into_view().await.map_err(|e| {
-                    ToolproofStepError::Assertion(ToolproofTestFailure::Custom {
-                        msg: format!("Element {selector} could not be scrolled into view: {e}"),
-                    })
-                })?;
-
-                let center = element.clickable_point().await.map_err(|e| {
-                    ToolproofStepError::Assertion(ToolproofTestFailure::Custom {
-                        msg: format!("Could not find a clickable point for {selector}: {e}"),
-                    })
-                })?;
-
-                match interaction {
-                    InteractionType::Click => {
-                        page.click(center).await.map_err(|e| {
-                            ToolproofStepError::Assertion(ToolproofTestFailure::Custom {
-                                msg: format!("Element {selector} could not be clicked: {e}"),
-                            })
-                        })?;
+                    if let Err(e) = element.scroll_into_view().await {
+                        match e {
+                            // If the element was detached from the DOM after the time we selected it,
+                            // we want to restart this section and select a new element.
+                            CdpError::ScrollingFailed(msg) if msg.contains("detached") => continue,
+                            _ => {
+                                return Err(ToolproofStepError::Assertion(
+                                    ToolproofTestFailure::Custom {
+                                        msg: format!(
+                                        "Element {selector} could not be scrolled into view: {e}"
+                                    ),
+                                    },
+                                ))
+                            }
+                        }
                     }
-                    InteractionType::Hover => {
-                        page.move_mouse(center).await.map_err(|e| {
-                            ToolproofStepError::Assertion(ToolproofTestFailure::Custom {
-                                msg: format!("Element {selector} could not be hovered: {e}"),
-                            })
-                        })?;
+
+                    let center = match element.clickable_point().await {
+                        Ok(c) => c,
+                        Err(e) => {
+                            if let Ok(res) = element
+                                .call_js_fn("async function() { return this.isConnected; }", true)
+                                .await
+                            {
+                                // If we can't find the center due to the element now being detached from the DOM,
+                                // we want to restart this section and select a new element.
+                                if matches!(res.result.value, Some(serde_json::Value::Bool(false)))
+                                {
+                                    continue;
+                                }
+                            }
+
+                            return Err(ToolproofStepError::Assertion(
+                                ToolproofTestFailure::Custom {
+                                    msg: format!(
+                                        "Could not find a clickable point for {selector}: {e}"
+                                    ),
+                                },
+                            ));
+                        }
+                    };
+
+                    match interaction {
+                        InteractionType::Click => {
+                            page.click(center).await.map_err(|e| {
+                                ToolproofStepError::Assertion(ToolproofTestFailure::Custom {
+                                    msg: format!("Element {selector} could not be clicked: {e}"),
+                                })
+                            })?;
+                        }
+                        InteractionType::Hover => {
+                            page.move_mouse(center).await.map_err(|e| {
+                                ToolproofStepError::Assertion(ToolproofTestFailure::Custom {
+                                    msg: format!("Element {selector} could not be hovered: {e}"),
+                                })
+                            })?;
+                        }
                     }
+                    break;
                 }
 
                 Ok(())
