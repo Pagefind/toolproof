@@ -75,7 +75,7 @@ class ToolproofHarness {
     }
   }
 
-  async waitFor(q, timeout = 4000) {
+  async waitFor(q, timeout = DEFAULT_TIMEOUT) {
     let start = Date.now();
     const throttle = 50; // TODO: configure
 
@@ -95,7 +95,7 @@ class ToolproofHarness {
     return r;
   }
 
-  async querySelector(s, timeout = 4000) {
+  async querySelector(s, timeout = DEFAULT_TIMEOUT) {
     try {
       return await this.waitFor(() => document.querySelector(s), timeout);
     } catch (e) {
@@ -109,7 +109,7 @@ class ToolproofHarness {
     }
   }
 
-  async querySelectorAll(s, timeout = 4000) {
+  async querySelectorAll(s, timeout = DEFAULT_TIMEOUT) {
     try {
       return await this.waitFor(() => {
         let els = document.querySelectorAll(s);
