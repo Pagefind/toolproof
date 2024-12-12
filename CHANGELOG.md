@@ -9,6 +9,8 @@
 
 ## Unreleased
 
+## v0.10.0 (December 12, 2024)
+
 * Add `browser-timeout` / `browser_timeout` setting that changes the default timeout for browser actions such as `toolproof.querySelector()`
 
 ## v0.9.0 (December 3, 2024)
