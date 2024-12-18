@@ -276,7 +276,13 @@ impl BrowserWindow {
                 let el_xpath = |el: &str| {
                     format!("//{el}[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{text}')]")
                 };
-                let xpath = [el_xpath("a"), el_xpath("button"), el_xpath("input")].join(" | ");
+                let xpath = [
+                    el_xpath("a"),
+                    el_xpath("button"),
+                    el_xpath("input"),
+                    el_xpath("*[@role='button']"),
+                ]
+                .join(" | ");
 
                 loop {
                     let elements = browser_specific::wait_for_chrome_xpath_selectors(

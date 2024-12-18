@@ -9,6 +9,8 @@
 
 ## Unreleased
 
+* Allow the generic "I click" action to click elements with a `role="button"` attribute
+
 ## v0.10.1 (December 12, 2024)
 
 * Made the browser click/hover steps more resilient to DOM nodes detaching mid-action
