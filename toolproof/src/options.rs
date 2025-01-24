@@ -1,6 +1,7 @@
 use clap::{
     arg, builder::PossibleValuesParser, command, value_parser, Arg, ArgAction, ArgMatches, Command,
 };
+use miette::IntoDiagnostic;
 use schematic::{derive_enum, Config, ConfigEnum, ConfigLoader};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, env, path::PathBuf};
@@ -31,15 +32,15 @@ pub fn configure() -> ToolproofContext {
 
     let mut loader = ConfigLoader::<ToolproofParams>::new();
     for config in configs {
-        if let Err(e) = loader.file(config) {
-            eprintln!("Failed to load {config}:\n{e}");
+        if let Err(e) = loader.file(config).into_diagnostic() {
+            eprintln!("Failed to load {config}:\n{e:?}");
             std::process::exit(1);
         }
     }
 
-    match loader.load() {
+    match loader.load().into_diagnostic() {
         Err(e) => {
-            eprintln!("Failed to initialize configuration: {e}");
+            eprintln!("Failed to initialize configuration: {e:?}");
             std::process::exit(1);
         }
         Ok(mut result) => {
@@ -214,6 +215,10 @@ pub struct ToolproofParams {
     /// Skip running any of the before_all hooks
     #[setting(env = "TOOLPROOF_SKIPHOOKS")]
     pub skip_hooks: bool,
+
+    /// Error if Toolproof is below this version
+    #[setting(env = "TOOLPROOF_SUPPORTED_VERSIONS")]
+    pub supported_versions: Option<String>,
 }
 
 // The configuration object used internally

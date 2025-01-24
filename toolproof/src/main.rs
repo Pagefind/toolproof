@@ -7,10 +7,12 @@ use std::{collections::HashMap, time::Instant};
 
 use console::{style, Term};
 use futures::future::join_all;
+use miette::IntoDiagnostic;
 use normalize_path::NormalizePath;
 use parser::{parse_macro, ToolproofFileType, ToolproofPlatform};
 use schematic::color::owo::OwoColorize;
 use segments::ToolproofSegments;
+use semver::{Version, VersionReq};
 use similar_string::compare_similarity;
 use tokio::fs::read_to_string;
 use tokio::process::Command;
@@ -203,6 +205,22 @@ fn closest_strings<'o>(target: &String, options: &'o Vec<String>) -> Vec<(&'o St
 
 async fn main_inner() -> Result<(), ()> {
     let ctx = configure();
+
+    if let Some(versions) = &ctx.params.supported_versions {
+        let req = VersionReq::parse(versions).into_diagnostic().map_err(|e| {
+            eprintln!("Failed to parse supported versions: {e:?}");
+        })?;
+        let active = Version::parse(&ctx.version).expect("Crate version should be valid");
+        let is_local = ctx.version == "0.0.0";
+
+        if !req.matches(&active) && !is_local {
+            eprintln!(
+                "Toolproof is running version {}, but your configuration requires Toolproof {}",
+                ctx.version, versions
+            );
+            return Err(());
+        }
+    }
 
     if ctx.params.skip_hooks {
         println!("{}", "Skipping before_all commands".yellow().bold());

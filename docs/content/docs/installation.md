@@ -7,6 +7,17 @@ weight: 5
 
 Toolproof is a static binary with no dynamic dependencies, so in most cases will be simple to install and run. Toolproof is currently supported on Windows, macOS, and Linux distributions.
 
+## Ensuring Toolproof is running a supported version
+
+For all installation methods, your Toolproof configuration can specify the supported Toolproof versions.
+
+```yml
+# In toolproof.yml
+supported_versions: ">=0.10.3"
+```
+
+This can also be set in a `TOOLPROOF_SUPPORTED_VERSIONS` environment variable.
+
 ## Running via npx
 
 ```bash
