@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 use std::fmt::Display;
+use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::Arc;
 use std::time::Duration;
@@ -7,10 +8,12 @@ use std::{collections::HashMap, time::Instant};
 
 use console::{style, Term};
 use futures::future::join_all;
+use miette::IntoDiagnostic;
 use normalize_path::NormalizePath;
 use parser::{parse_macro, ToolproofFileType, ToolproofPlatform};
 use schematic::color::owo::OwoColorize;
 use segments::ToolproofSegments;
+use semver::{Version, VersionReq};
 use similar_string::compare_similarity;
 use tokio::fs::read_to_string;
 use tokio::process::Command;
@@ -52,6 +55,7 @@ pub struct ToolproofTestFile {
     pub original_source: String,
     pub file_path: String,
     pub file_directory: String,
+    pub failure_screenshot: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone)]
@@ -203,6 +207,22 @@ fn closest_strings<'o>(target: &String, options: &'o Vec<String>) -> Vec<(&'o St
 
 async fn main_inner() -> Result<(), ()> {
     let ctx = configure();
+
+    if let Some(versions) = &ctx.params.supported_versions {
+        let req = VersionReq::parse(versions).into_diagnostic().map_err(|e| {
+            eprintln!("Failed to parse supported versions: {e:?}");
+        })?;
+        let active = Version::parse(&ctx.version).expect("Crate version should be valid");
+        let is_local = ctx.version == "0.0.0";
+
+        if !req.matches(&active) && !is_local {
+            eprintln!(
+                "Toolproof is running version {}, but your configuration requires Toolproof {}",
+                ctx.version, versions
+            );
+            return Err(());
+        }
+    }
 
     if ctx.params.skip_hooks {
         println!("{}", "Skipping before_all commands".yellow().bold());
@@ -661,6 +681,16 @@ async fn main_inner() -> Result<(), ()> {
                         log_err();
                     }
                 }
+
+                if let Some(failure_screenshot) = &file.failure_screenshot {
+                    println!("{}", "--- FAILURE SCREENSHOT ---".on_yellow().bold());
+                    println!(
+                        "{} {}",
+                        "Browser state at failure was screenshot to".red(),
+                        failure_screenshot.to_string_lossy().cyan().bold()
+                    );
+                }
+
                 Err(HoldingError::TestFailure)
             }
         }

@@ -2,14 +2,19 @@ use async_recursion::async_recursion;
 use futures::FutureExt;
 use normalize_path::NormalizePath;
 use similar_string::find_best_similarity;
-use std::{collections::HashMap, path::PathBuf, sync::Arc};
+use std::{
+    collections::HashMap,
+    path::PathBuf,
+    sync::Arc,
+    time::{SystemTime, UNIX_EPOCH},
+};
 use tokio::time::{self, Duration};
 
 use console::style;
 
 use crate::{
     civilization::Civilization,
-    definitions::ToolproofInstruction,
+    definitions::{browser::screenshots::ScreenshotViewport, ToolproofInstruction},
     errors::{ToolproofInputError, ToolproofStepError, ToolproofTestError, ToolproofTestFailure},
     platforms::platform_matches,
     segments::SegmentArgs,
@@ -37,6 +42,38 @@ pub async fn run_toolproof_experiment(
     };
 
     let res = run_toolproof_steps(&input.file_directory, &mut input.steps, &mut civ, None).await;
+
+    if res.is_err() && civ.window.is_some() {
+        if let Some(screenshot_target) = &civ.universe.ctx.params.failure_screenshot_location {
+            let instruction = ScreenshotViewport {};
+            let filename = format!(
+                "{}-{}.webp",
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .expect("Toolproof should be running after the UNIX EPOCH")
+                    .as_secs(),
+                input.file_path.replace(|c: char| !c.is_alphanumeric(), "-")
+            );
+            let abs_acreenshot_target = civ.universe.ctx.working_directory.join(screenshot_target);
+            let filepath = abs_acreenshot_target.join(filename);
+            if instruction
+                .run(
+                    &SegmentArgs::build_synthetic(
+                        [(
+                            "filepath".to_string(),
+                            &serde_json::Value::String(filepath.to_string_lossy().to_string()),
+                        )]
+                        .into(),
+                    ),
+                    &mut civ,
+                )
+                .await
+                .is_ok()
+            {
+                input.failure_screenshot = Some(filepath)
+            }
+        }
+    }
 
     civ.shutdown().await;
 

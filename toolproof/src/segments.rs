@@ -102,6 +102,14 @@ pub struct SegmentArgs<'a> {
 }
 
 impl<'a> SegmentArgs<'a> {
+    pub fn build_synthetic(args: HashMap<String, &'a serde_json::Value>) -> Self {
+        Self {
+            args,
+            placeholder_delim: "INTENTIONALLY_UNSET".to_string(),
+            placeholders: HashMap::new(),
+        }
+    }
+
     pub fn build(
         reference_instruction: &ToolproofSegments,
         supplied_instruction: &'a ToolproofSegments,

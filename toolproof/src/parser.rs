@@ -105,6 +105,7 @@ impl TryFrom<ToolproofTestInput> for ToolproofTestFile {
             original_source: value.original_source,
             file_path: value.file_path,
             file_directory: value.file_directory,
+            failure_screenshot: None,
         })
     }
 }
