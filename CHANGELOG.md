@@ -9,6 +9,10 @@
 
 ## Unreleased
 
+* Allow the generic "I click" action to click `option` elements, and elements with a `role="option"` attribute
+* Add a `supported_versions` configuration option to ensure Toolproof isn't running a version older than your tests support
+* Add a `failure_screenshot_location` configuration option to enable Toolproof to automatically screenshot the browser on test failure
+
 ## v0.10.2 (December 18, 2024)
 
 * Allow the generic "I click" action to click elements with a `role="button"` attribute
