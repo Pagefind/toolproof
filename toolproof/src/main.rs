@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 use std::fmt::Display;
+use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::Arc;
 use std::time::Duration;
@@ -54,6 +55,7 @@ pub struct ToolproofTestFile {
     pub original_source: String,
     pub file_path: String,
     pub file_directory: String,
+    pub failure_screenshot: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone)]
@@ -679,6 +681,16 @@ async fn main_inner() -> Result<(), ()> {
                         log_err();
                     }
                 }
+
+                if let Some(failure_screenshot) = &file.failure_screenshot {
+                    println!("{}", "--- FAILURE SCREENSHOT ---".on_yellow().bold());
+                    println!(
+                        "{} {}",
+                        "Browser state at failure was screenshot to".red(),
+                        failure_screenshot.to_string_lossy().cyan().bold()
+                    );
+                }
+
                 Err(HoldingError::TestFailure)
             }
         }

@@ -140,6 +140,13 @@ fn get_cli_matches() -> ArgMatches {
             .required(false)
             .value_parser(PossibleValuesParser::new(["chrome", "pagebrowse"])),
         )
+        .arg(
+            arg!(
+                --"failure-screenshot-location" <DIR> "If set, Toolproof will screenshot the browser to this location when a test fails (if applicable)"
+            )
+            .required(false)
+            .value_parser(value_parser!(PathBuf)),
+        )
         .get_matches()
 }
 
@@ -219,6 +226,10 @@ pub struct ToolproofParams {
     /// Error if Toolproof is below this version
     #[setting(env = "TOOLPROOF_SUPPORTED_VERSIONS")]
     pub supported_versions: Option<String>,
+
+    /// If set, Toolproof will screenshot the browser to this location when a test fails (if applicable)
+    #[setting(env = "TOOLPROOF_FAILURE_SCREENSHOT_LOCATION")]
+    pub failure_screenshot_location: Option<PathBuf>,
 }
 
 // The configuration object used internally
@@ -301,6 +312,12 @@ impl ToolproofParams {
 
                 self.placeholders.insert(key.into(), value.into());
             }
+        }
+
+        if let Some(failure_screenshot_location) =
+            cli_matches.get_one::<PathBuf>("failure-screenshot-location")
+        {
+            self.failure_screenshot_location = Some(failure_screenshot_location.clone());
         }
     }
 }

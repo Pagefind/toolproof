@@ -645,7 +645,7 @@ mod eval_js {
     }
 }
 
-mod screenshots {
+pub mod screenshots {
     use crate::errors::{ToolproofInternalError, ToolproofTestFailure};
 
     use super::*;
