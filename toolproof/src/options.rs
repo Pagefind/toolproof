@@ -1,6 +1,7 @@
 use clap::{
     arg, builder::PossibleValuesParser, command, value_parser, Arg, ArgAction, ArgMatches, Command,
 };
+use miette::IntoDiagnostic;
 use schematic::{derive_enum, Config, ConfigEnum, ConfigLoader};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, env, path::PathBuf};
@@ -31,15 +32,15 @@ pub fn configure() -> ToolproofContext {
 
     let mut loader = ConfigLoader::<ToolproofParams>::new();
     for config in configs {
-        if let Err(e) = loader.file(config) {
-            eprintln!("Failed to load {config}:\n{e}");
+        if let Err(e) = loader.file(config).into_diagnostic() {
+            eprintln!("Failed to load {config}:\n{e:?}");
             std::process::exit(1);
         }
     }
 
-    match loader.load() {
+    match loader.load().into_diagnostic() {
         Err(e) => {
-            eprintln!("Failed to initialize configuration: {e}");
+            eprintln!("Failed to initialize configuration: {e:?}");
             std::process::exit(1);
         }
         Ok(mut result) => {
@@ -139,6 +140,13 @@ fn get_cli_matches() -> ArgMatches {
             .required(false)
             .value_parser(PossibleValuesParser::new(["chrome", "pagebrowse"])),
         )
+        .arg(
+            arg!(
+                --"failure-screenshot-location" <DIR> "If set, Toolproof will screenshot the browser to this location when a test fails (if applicable)"
+            )
+            .required(false)
+            .value_parser(value_parser!(PathBuf)),
+        )
         .get_matches()
 }
 
@@ -214,6 +222,14 @@ pub struct ToolproofParams {
     /// Skip running any of the before_all hooks
     #[setting(env = "TOOLPROOF_SKIPHOOKS")]
     pub skip_hooks: bool,
+
+    /// Error if Toolproof is below this version
+    #[setting(env = "TOOLPROOF_SUPPORTED_VERSIONS")]
+    pub supported_versions: Option<String>,
+
+    /// If set, Toolproof will screenshot the browser to this location when a test fails (if applicable)
+    #[setting(env = "TOOLPROOF_FAILURE_SCREENSHOT_LOCATION")]
+    pub failure_screenshot_location: Option<PathBuf>,
 }
 
 // The configuration object used internally
@@ -296,6 +312,12 @@ impl ToolproofParams {
 
                 self.placeholders.insert(key.into(), value.into());
             }
+        }
+
+        if let Some(failure_screenshot_location) =
+            cli_matches.get_one::<PathBuf>("failure-screenshot-location")
+        {
+            self.failure_screenshot_location = Some(failure_screenshot_location.clone());
         }
     }
 }
