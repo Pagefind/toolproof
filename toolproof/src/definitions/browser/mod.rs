@@ -280,7 +280,9 @@ impl BrowserWindow {
                     el_xpath("a"),
                     el_xpath("button"),
                     el_xpath("input"),
+                    el_xpath("option"),
                     el_xpath("*[@role='button']"),
+                    el_xpath("*[@role='option']"),
                 ]
                 .join(" | ");
 
