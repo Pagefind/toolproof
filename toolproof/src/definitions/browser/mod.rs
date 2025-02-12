@@ -46,6 +46,16 @@ fn auto_selector_timeout(civ: &Civilization) -> u64 {
     civ.universe.ctx.params.timeout.saturating_sub(2).max(1)
 }
 
+fn escape_xpath_string(s: &str) -> String {
+    if s.contains('\'') {
+        // If string contains single quotes, split on them and wrap with xpath's concat()
+        let parts: Vec<_> = s.split('\'').collect();
+        format!("concat('{}')", parts.join("',\"'\",'"))
+    } else {
+        format!("'{}'", s)
+    }
+}
+
 pub enum BrowserTester {
     Pagebrowse(Arc<Pagebrowser>),
     Chrome {
@@ -272,9 +282,10 @@ impl BrowserWindow {
     ) -> Result<(), ToolproofStepError> {
         match self {
             BrowserWindow::Chrome(page) => {
-                let text = text.to_lowercase().replace('\'', "\\'");
+                let text = text.to_lowercase();
+                let selector_text = escape_xpath_string(&text);
                 let el_xpath = |el: &str| {
-                    format!("//{el}[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{text}')]")
+                    format!("//{el}[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), {selector_text})]")
                 };
                 let xpath = [
                     el_xpath("a"),
