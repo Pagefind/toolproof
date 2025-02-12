@@ -9,6 +9,8 @@
 
 ## Unreleased
 
+* Fix the "I click" action when the provided text contains an apostrophe/single quote.
+
 ## v0.10.3 (January 24, 2025)
 
 * Allow the generic "I click" action to click `option` elements, and elements with a `role="option"` attribute
