@@ -9,6 +9,8 @@
 
 ## Unreleased
 
+## v0.11.0 (February 13, 2025)
+
 * Added browser instruction: `In my browser, I press the {keyname} key`
 * Added browser instruction: `In my browser, I type {text}`
 
