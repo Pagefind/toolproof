@@ -9,6 +9,11 @@
 
 ## Unreleased
 
+## v0.11.0 (February 13, 2025)
+
+* Added browser instruction: `In my browser, I press the {keyname} key`
+* Added browser instruction: `In my browser, I type {text}`
+
 ## v0.10.4 (February 12, 2025)
 
 * Fix the "I click" action when the provided text contains an apostrophe/single quote.

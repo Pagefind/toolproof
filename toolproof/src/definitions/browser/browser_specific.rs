@@ -1,6 +1,9 @@
 use std::path::PathBuf;
 
-use chromiumoxide::cdp::browser_protocol::page::CaptureScreenshotFormat;
+use chromiumoxide::cdp::browser_protocol::{
+    input::{DispatchKeyEventParams, DispatchKeyEventType},
+    page::CaptureScreenshotFormat,
+};
 
 use crate::errors::{ToolproofInputError, ToolproofStepError, ToolproofTestFailure};
 
