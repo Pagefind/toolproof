@@ -484,6 +484,29 @@ impl BrowserWindow {
             )),
         }
     }
+
+    async fn press_key(&self, key: &str, timeout_secs: u64) -> Result<(), ToolproofStepError> {
+        match self {
+            BrowserWindow::Chrome(page) => {
+                let dom =
+                    browser_specific::wait_for_chrome_element_selector(page, "body", timeout_secs)
+                        .await?;
+
+                dom.press_key(key).await.map_err(|e| {
+                    ToolproofStepError::Assertion(ToolproofTestFailure::Custom {
+                        msg: format!("Key {key} could not be pressed: {e}"),
+                    })
+                })?;
+
+                Ok(())
+            }
+            BrowserWindow::Pagebrowse(_) => Err(ToolproofStepError::Internal(
+                ToolproofInternalError::Custom {
+                    msg: "Keystrokes not yet implemented for Pagebrowse".to_string(),
+                },
+            )),
+        }
+    }
 }
 
 mod load_page {
@@ -873,6 +896,72 @@ mod interactions {
                     auto_selector_timeout(civ),
                 )
                 .await
+        }
+    }
+
+    pub struct PressKey;
+
+    inventory::submit! {
+        &PressKey as &dyn ToolproofInstruction
+    }
+
+    #[async_trait]
+    impl ToolproofInstruction for PressKey {
+        fn segments(&self) -> &'static str {
+            "In my browser, I press the {keyname} key"
+        }
+
+        async fn run(
+            &self,
+            args: &SegmentArgs<'_>,
+            civ: &mut Civilization,
+        ) -> Result<(), ToolproofStepError> {
+            let keyname = args.get_string("keyname")?;
+
+            let Some(window) = civ.window.as_ref() else {
+                return Err(ToolproofStepError::External(
+                    ToolproofInputError::StepRequirementsNotMet {
+                        reason: "no page has been loaded into the browser for this test".into(),
+                    },
+                ));
+            };
+
+            window.press_key(&keyname, auto_selector_timeout(civ)).await
+        }
+    }
+
+    pub struct TypeText;
+
+    inventory::submit! {
+        &TypeText as &dyn ToolproofInstruction
+    }
+
+    #[async_trait]
+    impl ToolproofInstruction for TypeText {
+        fn segments(&self) -> &'static str {
+            "In my browser, I type {text}"
+        }
+
+        async fn run(
+            &self,
+            args: &SegmentArgs<'_>,
+            civ: &mut Civilization,
+        ) -> Result<(), ToolproofStepError> {
+            let text = args.get_string("text")?;
+
+            let Some(window) = civ.window.as_ref() else {
+                return Err(ToolproofStepError::External(
+                    ToolproofInputError::StepRequirementsNotMet {
+                        reason: "no page has been loaded into the browser for this test".into(),
+                    },
+                ));
+            };
+
+            for c in text.split("").filter(|s| !s.is_empty()) {
+                window.press_key(c, auto_selector_timeout(civ)).await?;
+            }
+
+            Ok(())
         }
     }
 }
