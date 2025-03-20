@@ -12,6 +12,7 @@ use chromiumoxide::cdp::js_protocol::runtime::RemoteObjectType;
 use chromiumoxide::error::CdpError;
 use chromiumoxide::handler::viewport::Viewport;
 use chromiumoxide::page::ScreenshotParams;
+use futures::future::join_all;
 use futures::StreamExt;
 use tempfile::tempdir;
 use tokio::task::JoinHandle;
@@ -316,17 +317,45 @@ impl BrowserWindow {
                         ));
                     }
 
+                    let mut elements = join_all(elements.into_iter().map(|e| async {
+                        let text = e.inner_text().await.ok().flatten().unwrap_or_default();
+                        (e, text)
+                    }))
+                    .await;
+
                     if elements.len() > 1 {
-                        return Err(ToolproofStepError::Assertion(
-                            ToolproofTestFailure::Custom {
-                                msg: format!(
-                                "Found more than one clickable element containing text '{text}'."
-                            ),
-                            },
-                        ));
+                        let exact_matches: usize = elements
+                            .iter()
+                            .filter(|(_, t)| t.trim().to_lowercase() == text)
+                            .count();
+
+                        if exact_matches == 1 {
+                            elements.retain(|(_, t)| t.trim().to_lowercase() == text);
+                        } else if exact_matches > 1 {
+                            return Err(ToolproofStepError::Assertion(
+                                ToolproofTestFailure::Custom {
+                                    msg: format!(
+                                        "Found more than one clickable element containing exactly the text '{text}'."
+                                    ),
+                                },
+                            ));
+                        } else if exact_matches == 0 {
+                            let options: String = elements
+                                .into_iter()
+                                .map(|(_, t)| format!("  - \"{t}\""))
+                                .collect::<Vec<_>>()
+                                .join("\n");
+                            return Err(ToolproofStepError::Assertion(
+                                ToolproofTestFailure::Custom {
+                                    msg: format!(
+                                    "Found more than one clickable element containing text '{text}', and none that exactly match.\nOptions:{options}"
+                                ),
+                                },
+                            ));
+                        }
                     }
 
-                    if let Err(e) = elements[0].scroll_into_view().await {
+                    if let Err(e) = elements[0].0.scroll_into_view().await {
                         match e {
                             // If the element was detached from the DOM after the time we selected it,
                             // we want to restart this section and select a new element.
@@ -341,10 +370,11 @@ impl BrowserWindow {
                         }
                     }
 
-                    let center = match elements[0].clickable_point().await {
+                    let center = match elements[0].0.clickable_point().await {
                         Ok(c) => c,
                         Err(e) => {
                             if let Ok(res) = elements[0]
+                                .0
                                 .call_js_fn("async function() { return this.isConnected; }", true)
                                 .await
                             {

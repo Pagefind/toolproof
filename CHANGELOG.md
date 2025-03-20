@@ -9,6 +9,8 @@
 
 ## Unreleased
 
+* If the `I click {text}` action finds multiple options, but only one is an exact match, it will now click it rather than error.
+
 ## v0.11.1 (March 20, 2025)
 
 * Added support for newline and tab characters in the `I type {text}` instruction
