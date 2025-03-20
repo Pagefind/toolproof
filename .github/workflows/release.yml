@@ -289,7 +289,7 @@ jobs:
           fetch-depth: 1
 
       - name: Cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             ~/.cargo/registry

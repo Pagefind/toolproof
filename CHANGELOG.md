@@ -9,6 +9,10 @@
 
 ## Unreleased
 
+## v0.11.1 (March 20, 2025)
+
+* Added support for newline and tab characters in the `I type {text}` instruction
+
 ## v0.11.0 (February 13, 2025)
 
 * Added browser instruction: `In my browser, I press the {keyname} key`
