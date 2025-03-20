@@ -958,7 +958,14 @@ mod interactions {
             };
 
             for c in text.split("").filter(|s| !s.is_empty()) {
-                window.press_key(c, auto_selector_timeout(civ)).await?;
+                let resolved_key = match c {
+                    "\n" => "Enter",
+                    "\t" => "Tab",
+                    c => c,
+                };
+                window
+                    .press_key(resolved_key, auto_selector_timeout(civ))
+                    .await?;
             }
 
             Ok(())
