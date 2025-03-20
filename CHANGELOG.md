@@ -9,6 +9,8 @@
 
 ## Unreleased
 
+## v0.11.2 (March 20, 2025)
+
 * If the `I click {text}` action finds multiple options, but only one is an exact match, it will now click it rather than error.
 
 ## v0.11.1 (March 20, 2025)
