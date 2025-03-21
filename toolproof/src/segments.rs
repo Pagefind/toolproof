@@ -165,6 +165,13 @@ impl<'a> SegmentArgs<'a> {
                     tmp_dir.path().to_string_lossy().into_owned(),
                 );
             }
+
+            if let Some(assigned_server_port) = &civ.assigned_server_port {
+                placeholders.insert(
+                    "toolproof_test_port".to_string(),
+                    assigned_server_port.to_string(),
+                );
+            }
         }
 
         if let Some(transient_placeholders) = transient_placeholders {
