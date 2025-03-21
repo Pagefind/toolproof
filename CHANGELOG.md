@@ -9,6 +9,8 @@
 
 ## Unreleased
 
+## v0.12.0 (March 21, 2025)
+
 * Added a `toolproof_test_port` default placeholder.
 
 ## v0.11.2 (March 20, 2025)
