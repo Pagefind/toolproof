@@ -9,6 +9,8 @@
 
 ## Unreleased
 
+## v0.13.0 (March 25, 2025)
+
 * Added browser instruction: `In my browser, I scroll to the selector {selector}`
   * NB: Click and hover steps already handled this, so this new instruction is primarily useful for screenshots.
 
