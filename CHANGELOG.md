@@ -9,6 +9,9 @@
 
 ## Unreleased
 
+* Added browser instruction: `In my browser, I scroll to the selector {selector}`
+  * NB: Click and hover steps already handled this, so this new instruction is primarily useful for screenshots.
+
 ## v0.12.0 (March 21, 2025)
 
 * Added a `toolproof_test_port` default placeholder.

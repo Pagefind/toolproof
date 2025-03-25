@@ -45,6 +45,7 @@ Instructions:
 - `In my browser, I hover {text}`
 - `In my browser, I click the selector {selector}`
 - `In my browser, I hover the selector {selector}`
+- `In my browser, I scroll to the selector {selector}`
 - `In my browser, I press the {keyname} key`
 - `In my browser, I type {text}`
 
