@@ -515,6 +515,50 @@ impl BrowserWindow {
         }
     }
 
+    async fn scroll_selector(
+        &self,
+        selector: &str,
+        timeout_secs: u64,
+    ) -> Result<(), ToolproofStepError> {
+        match self {
+            BrowserWindow::Chrome(page) => {
+                loop {
+                    let element = browser_specific::wait_for_chrome_element_selector(
+                        page,
+                        selector,
+                        timeout_secs,
+                    )
+                    .await?;
+
+                    if let Err(e) = element.scroll_into_view().await {
+                        match e {
+                            // If the element was detached from the DOM after the time we selected it,
+                            // we want to restart this section and select a new element.
+                            CdpError::ScrollingFailed(msg) if msg.contains("detached") => continue,
+                            _ => {
+                                return Err(ToolproofStepError::Assertion(
+                                    ToolproofTestFailure::Custom {
+                                        msg: format!(
+                                        "Element {selector} could not be scrolled into view: {e}"
+                                    ),
+                                    },
+                                ))
+                            }
+                        }
+                    }
+                    break;
+                }
+
+                Ok(())
+            }
+            BrowserWindow::Pagebrowse(_) => Err(ToolproofStepError::Internal(
+                ToolproofInternalError::Custom {
+                    msg: "Scrolls not yet implemented for Pagebrowse".to_string(),
+                },
+            )),
+        }
+    }
+
     async fn press_key(&self, key: &str, timeout_secs: u64) -> Result<(), ToolproofStepError> {
         match self {
             BrowserWindow::Chrome(page) => {
@@ -925,6 +969,39 @@ mod interactions {
                     InteractionType::Hover,
                     auto_selector_timeout(civ),
                 )
+                .await
+        }
+    }
+
+    pub struct ScrollSelector;
+
+    inventory::submit! {
+        &ScrollSelector as &dyn ToolproofInstruction
+    }
+
+    #[async_trait]
+    impl ToolproofInstruction for ScrollSelector {
+        fn segments(&self) -> &'static str {
+            "In my browser, I scroll to the selector {selector}"
+        }
+
+        async fn run(
+            &self,
+            args: &SegmentArgs<'_>,
+            civ: &mut Civilization,
+        ) -> Result<(), ToolproofStepError> {
+            let selector = args.get_string("selector")?;
+
+            let Some(window) = civ.window.as_ref() else {
+                return Err(ToolproofStepError::External(
+                    ToolproofInputError::StepRequirementsNotMet {
+                        reason: "no page has been loaded into the browser for this test".into(),
+                    },
+                ));
+            };
+
+            window
+                .scroll_selector(&selector, auto_selector_timeout(civ))
                 .await
         }
     }
