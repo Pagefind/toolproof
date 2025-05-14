@@ -173,8 +173,10 @@ steps:
 
 Toolproof provides some placeholders by default:
 
-| placeholder                 | value                                                            |
-| --------------------------- | ---------------------------------------------------------------- |
-| toolproof_process_directory | The working directory that you ran the Toolproof command in      |
-| toolproof_test_directory    | The temporary directory that the current test is running in      |
-| toolproof_test_port         | If serving files, the port that Toolproof is using for this test |
+| placeholder                      | value                                                            |
+| -------------------------------- | ---------------------------------------------------------------- |
+| toolproof_process_directory      | The working directory that you ran the Toolproof command in      |
+| toolproof_process_directory_unix | toolproof_process_directory, but with forward slash delimiters   |
+| toolproof_test_directory         | The temporary directory that the current test is running in      |
+| toolproof_test_directory_unix    | toolproof_test_directory, but with forward slash delimiters      |
+| toolproof_test_port              | If serving files, the port that Toolproof is using for this test |

@@ -18,8 +18,11 @@ pub enum ToolproofInputError {
     },
     #[error("Argument \"{arg}\" requires a value, cannot be empty")]
     ArgumentRequiresValue { arg: String },
-    #[error("yaml failed to parse: {0}")]
-    ParseError(#[from] serde_yaml::Error),
+    #[error("yaml failed to parse: {inner}")]
+    ParseError {
+        filename: String,
+        inner: serde_yaml::Error,
+    },
     #[error("unclosed argument, expected a {expected} character")]
     UnclosedValue { expected: char },
     #[error("invalid path: \"{input}\"")]
