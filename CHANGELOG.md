@@ -10,6 +10,7 @@
 ## Unreleased
 
 * Added placeholders for `toolproof_process_directory_unix` and `toolproof_test_directory_unix`
+* Improved error logging when a file fails to parse
 
 ## v0.13.0 (March 25, 2025)
 

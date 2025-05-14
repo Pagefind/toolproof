@@ -220,7 +220,12 @@ fn parse_step(
 }
 
 pub fn parse_macro(s: &str, p: PathBuf) -> Result<ToolproofMacroFile, ToolproofInputError> {
-    let raw_macro = serde_yaml::from_str::<RawToolproofMacroFile>(s)?;
+    let raw_macro = serde_yaml::from_str::<RawToolproofMacroFile>(s).map_err(|e| {
+        ToolproofInputError::ParseError {
+            filename: p.to_slash_lossy().into_owned(),
+            inner: e,
+        }
+    })?;
 
     ToolproofMacroInput {
         parsed: raw_macro,
@@ -235,7 +240,12 @@ pub fn parse_macro(s: &str, p: PathBuf) -> Result<ToolproofMacroFile, ToolproofI
 }
 
 pub fn parse_file(s: &str, p: PathBuf) -> Result<ToolproofTestFile, ToolproofInputError> {
-    let raw_test = serde_yaml::from_str::<RawToolproofTestFile>(s)?;
+    let raw_test = serde_yaml::from_str::<RawToolproofTestFile>(s).map_err(|e| {
+        ToolproofInputError::ParseError {
+            filename: p.to_slash_lossy().into_owned(),
+            inner: e,
+        }
+    })?;
 
     ToolproofTestInput {
         parsed: raw_test,
