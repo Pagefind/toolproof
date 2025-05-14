@@ -9,6 +9,11 @@
 
 ## Unreleased
 
+## v0.14.0 (May 14, 2025)
+
+* Added placeholders for `toolproof_process_directory_unix` and `toolproof_test_directory_unix`
+* Improved error logging when a file fails to parse
+
 ## v0.13.0 (March 25, 2025)
 
 * Added browser instruction: `In my browser, I scroll to the selector {selector}`

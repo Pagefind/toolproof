@@ -3,6 +3,7 @@ use std::{collections::HashMap, hash::Hash};
 use crate::{civilization::Civilization, errors::ToolproofInputError, options::ToolproofContext};
 
 use async_trait::async_trait;
+use path_slash::{PathBufExt, PathExt};
 use serde_json::Value;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -159,10 +160,24 @@ impl<'a> SegmentArgs<'a> {
                     .into_owned(),
             );
 
+            placeholders.insert(
+                "toolproof_process_directory_unix".to_string(),
+                civ.universe
+                    .ctx
+                    .working_directory
+                    .to_slash_lossy()
+                    .into_owned(),
+            );
+
             if let Some(tmp_dir) = &civ.tmp_dir {
                 placeholders.insert(
                     "toolproof_test_directory".to_string(),
                     tmp_dir.path().to_string_lossy().into_owned(),
+                );
+
+                placeholders.insert(
+                    "toolproof_test_directory_unix".to_string(),
+                    tmp_dir.path().to_slash_lossy().into_owned(),
                 );
             }
 
