@@ -9,7 +9,7 @@ steps:
         - I run 'echo "toolproof 🙂"'
         - stdout should contain "🙂"
   - I run "%toolproof_path%"
-  - step: "stdout should contain 'Passing tests: 1'"
+  - step: "stdout should contain 'Total passing tests: 1'"
   - step: "stdout should contain 'Failing tests: 0'"
   - step: "stdout should contain 'Skipped tests: 0'"
   - step: "stdout should contain 'All tests passed'"
@@ -22,7 +22,7 @@ steps:
         - I run 'echo "toolproof 🙁"'
         - stdout should contain "🙂"
   - I run "%toolproof_path%" and expect it to fail
-  - step: "stdout should contain 'Passing tests: 0'"
+  - step: "stdout should contain 'Total passing tests: 0'"
   - step: "stdout should contain 'Failing tests: 1'"
   - step: "stdout should contain 'Skipped tests: 0'"
   - step: "stdout should contain 'Some tests failed'"

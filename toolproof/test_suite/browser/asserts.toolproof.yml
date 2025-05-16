@@ -23,7 +23,7 @@ steps:
             toolproof.assert_lte(2, 4);
             toolproof.assert(true);
   - I run "%toolproof_path% --timeout 60"
-  - step: "stdout should contain 'Passing tests: 1'"
+  - step: "stdout should contain 'Total passing tests: 1'"
   - step: "stdout should contain 'Failing tests: 0'"
   - step: "stdout should contain 'All tests passed'"
   - stderr should be empty
@@ -64,7 +64,7 @@ steps:
           js: |-
             toolproof.assert(false);
   - I run "%toolproof_path% --timeout 60 --porcelain" and expect it to fail
-  - step: "stdout should contain 'Passing tests: 0'"
+  - step: "stdout should contain 'Total passing tests: 0'"
   - step: "stdout should contain 'Failing tests: 4'"
   - step: "stdout should contain 'Some tests failed'"
   - stderr should be empty

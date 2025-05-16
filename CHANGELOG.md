@@ -9,6 +9,8 @@
 
 ## Unreleased
 
+* Added a `--retry-count` option to retry failed tests
+
 ## v0.14.0 (May 14, 2025)
 
 * Added placeholders for `toolproof_process_directory_unix` and `toolproof_test_directory_unix`

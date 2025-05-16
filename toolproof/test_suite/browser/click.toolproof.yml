@@ -19,7 +19,7 @@ steps:
           js: |-
             toolproof.assert_eq(document.querySelector(".b2").innerText, "Test");
   - I run "%toolproof_path% --timeout 60"
-  - step: "stdout should contain 'Passing tests: 1'"
+  - step: "stdout should contain 'Total passing tests: 1'"
   - step: "stdout should contain 'Failing tests: 0'"
   - step: "stdout should contain 'All tests passed'"
   - stderr should be empty
