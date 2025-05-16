@@ -19,7 +19,7 @@ steps:
             let span = await toolproof.waitFor(() => document.querySelector("span"));
             toolproof.assert_eq(span.innerText, "added");
   - I run "%toolproof_path% --timeout 60"
-  - step: "stdout should contain 'Passing tests: 1'"
+  - step: "stdout should contain 'Total passing tests: 1'"
   - step: "stdout should contain 'Failing tests: 0'"
   - step: "stdout should contain 'All tests passed'"
   - stderr should be empty
@@ -41,7 +41,7 @@ steps:
             let span = await toolproof.waitFor(() => document.querySelector("span"), 250);
             toolproof.assert_eq(span.innerText, "added");
   - I run "%toolproof_path% --timeout 60 --porcelain" and expect it to fail
-  - step: "stdout should contain 'Passing tests: 0'"
+  - step: "stdout should contain 'Total passing tests: 0'"
   - step: "stdout should contain 'Failing tests: 1'"
   - step: "stdout should contain 'Some tests failed'"
   - stderr should be empty
@@ -73,7 +73,8 @@ steps:
       ╎
       ╎Finished running tests
       ╎
-      ╎Passing tests: 0
+      ╎Total passing tests: 0
+      ╎Passed after retry: 0
       ╎Failing tests: 1
       ╎Skipped tests: 0
       ╎

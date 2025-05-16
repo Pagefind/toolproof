@@ -21,7 +21,7 @@ steps:
           snapshot_content: |-
             ╎New innards
   - I run "%toolproof_path% --timeout 60"
-  - step: "stdout should contain 'Passing tests: 1'"
+  - step: "stdout should contain 'Total passing tests: 1'"
   - step: "stdout should contain 'Failing tests: 0'"
   - step: "stdout should contain 'All tests passed'"
   - stderr should be empty
@@ -45,7 +45,7 @@ steps:
           snapshot_content: |-
             ╎Hello World
   - I run "%toolproof_path% --timeout 60" and expect it to fail
-  - step: "stdout should contain 'Passing tests: 0'"
+  - step: "stdout should contain 'Total passing tests: 0'"
   - step: "stdout should contain 'Failing tests: 1'"
   - step: "stdout should contain 'Some tests failed'"
   - stderr should be empty

@@ -18,7 +18,7 @@ pub enum ToolproofInputError {
     },
     #[error("Argument \"{arg}\" requires a value, cannot be empty")]
     ArgumentRequiresValue { arg: String },
-    #[error("yaml failed to parse: {inner}")]
+    #[error("File {filename} failed to parse: {inner}")]
     ParseError {
         filename: String,
         inner: serde_yaml::Error,

@@ -20,7 +20,8 @@ steps:
       ╎
       ╎Finished running tests
       ╎
-      ╎Passing tests: 1
+      ╎Total passing tests: 1
+      ╎Passed after retry: 0
       ╎Failing tests: 0
       ╎Skipped tests: 0
       ╎
@@ -60,7 +61,8 @@ steps:
       ╎
       ╎Finished running tests
       ╎
-      ╎Passing tests: 0
+      ╎Total passing tests: 0
+      ╎Passed after retry: 0
       ╎Failing tests: 1
       ╎Skipped tests: 0
       ╎
