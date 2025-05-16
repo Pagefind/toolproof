@@ -31,7 +31,7 @@ steps:
             document.querySelector("p").innerText = "Modifried";
         - ref: "../refs/assert.toolproof.yml"
   - I run "%toolproof_path%"
-  - step: "stdout should contain 'Passing tests: 1'"
+  - step: "stdout should contain 'Total passing tests: 1'"
   - step: "stdout should contain 'Failing tests: 0'"
   - step: "stdout should contain 'All tests passed'"
   - stderr should be empty
@@ -46,7 +46,7 @@ steps:
             document.querySelector("p").innerText = "O.G.";
         - ref: "../refs/assert.toolproof.yml"
   - I run "%toolproof_path% --porcelain" and expect it to fail
-  - step: "stdout should contain 'Passing tests: 0'"
+  - step: "stdout should contain 'Total passing tests: 0'"
   - step: "stdout should contain 'Failing tests: 1'"
   - step: "stdout should contain 'Some tests failed'"
   - snapshot: stdout
@@ -75,7 +75,8 @@ steps:
       ╎
       ╎Finished running tests
       ╎
-      ╎Passing tests: 0
+      ╎Total passing tests: 0
+      ╎Passed after retry: 0
       ╎Failing tests: 1
       ╎Skipped tests: 0
       ╎
