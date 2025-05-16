@@ -453,5 +453,5 @@ async fn run_toolproof_steps(
         }
     }
 
-    Ok(ToolproofTestSuccess::Passed)
+    Ok(ToolproofTestSuccess::Passed { attempts: 0 })
 }

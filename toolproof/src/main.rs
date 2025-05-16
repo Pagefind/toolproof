@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 use std::fmt::Display;
+use std::ops::Div;
 use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::Arc;
@@ -71,7 +72,7 @@ pub struct ToolproofMacroFile {
 #[derive(Debug, Clone, PartialEq)]
 pub enum ToolproofTestSuccess {
     Skipped,
-    Passed,
+    Passed { attempts: usize },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -448,7 +449,7 @@ async fn main_inner() -> Result<(), ()> {
                         println!("{}", style(msg).dim());
                         return Ok(success);
                     }
-                    ToolproofTestSuccess::Passed => { /* continue to standard logging */ }
+                    ToolproofTestSuccess::Passed { .. } => { /* continue to standard logging */ }
                 }
                 if output_doc.trim() == file.original_source.trim() {
                     let msg = format!(
@@ -736,7 +737,7 @@ async fn main_inner() -> Result<(), ()> {
         }
     }
 
-    let results = join_all(hands)
+    let mut results = join_all(hands)
         .await
         .into_iter()
         .map(|outer_err| match outer_err {
@@ -745,6 +746,70 @@ async fn main_inner() -> Result<(), ()> {
             Err(e) => panic!("Failed to await all tests: {e}"),
         })
         .collect::<Vec<_>>();
+
+    let retry_count = universe.ctx.params.retry_count;
+    let mut concurrency = universe.ctx.params.concurrency;
+    for i in 0..retry_count {
+        if !results.iter().any(|r| r.is_err()) {
+            break;
+        }
+
+        let remaining_attempts = retry_count - i;
+        concurrency = concurrency.div(2).max(1);
+        println!(
+            "{}",
+            style(&format!(
+                "\nSome tests failed. Retrying {} at concurrency {concurrency}.",
+                if remaining_attempts == 1 {
+                    "once".to_string()
+                } else {
+                    format!("{remaining_attempts} times")
+                }
+            ))
+            .yellow()
+        );
+
+        let semaphore = Arc::new(tokio::sync::Semaphore::new(concurrency));
+        let mut hands = vec![];
+
+        for (result_index, result) in results.iter().enumerate().filter(|(_, r)| r.is_err()) {
+            if let Err((test, _)) = result {
+                let permit = semaphore.clone().acquire_owned().await.unwrap();
+                let uni = Arc::clone(&universe);
+                let mut new_test = test.clone();
+                hands.push(tokio::spawn(async move {
+                    let start = Instant::now();
+                    let res = run_toolproof_experiment(&mut new_test, Arc::clone(&uni)).await;
+                    let holding_err = handle_res(uni, (&new_test, res), start);
+
+                    drop(permit);
+
+                    (
+                        result_index,
+                        holding_err.map_err(|e| (new_test, e)).map(|r| {
+                            if matches!(r, ToolproofTestSuccess::Passed { .. }) {
+                                ToolproofTestSuccess::Passed { attempts: i + 1 }
+                            } else {
+                                r
+                            }
+                        }),
+                    )
+                }));
+            }
+        }
+
+        for (result_index, retried_result) in
+            join_all(hands)
+                .await
+                .into_iter()
+                .filter_map(|outer_err| match outer_err {
+                    Ok((i, Ok(success))) => Some((i, success)),
+                    _ => None,
+                })
+        {
+            results[result_index] = Ok(retried_result);
+        }
+    }
 
     let snapshot_failures = results
         .iter()
@@ -814,7 +879,7 @@ async fn main_inner() -> Result<(), ()> {
     let failing = results.iter().filter(|r| r.is_err()).count() - resolved_errors;
     let passing = results
         .iter()
-        .filter(|r| matches!(r, Ok(ToolproofTestSuccess::Passed)))
+        .filter(|r| matches!(r, Ok(ToolproofTestSuccess::Passed { .. })))
         .count()
         + resolved_errors;
     let skipped = results
@@ -822,9 +887,19 @@ async fn main_inner() -> Result<(), ()> {
         .filter(|r| matches!(r, Ok(ToolproofTestSuccess::Skipped)))
         .count();
 
+    let retried_passed = if universe.ctx.params.retry_count > 0 {
+        results
+            .iter()
+            .filter(|r| matches!(r, Ok(ToolproofTestSuccess::Passed { attempts: run }) if *run > 0))
+            .count()
+    } else {
+        0
+    };
+
     println!(
-        "{}\n{}\n{}",
-        style(&format!("Passing tests: {}", passing)).cyan(),
+        "{}\n{}\n{}\n{}",
+        style(&format!("Total passing tests: {}", passing)).cyan(),
+        style(&format!("Passed after retry: {}", retried_passed)).cyan(),
         style(&format!("Failing tests: {}", failing)).cyan(),
         style(&format!("Skipped tests: {}", skipped)).cyan(),
     );

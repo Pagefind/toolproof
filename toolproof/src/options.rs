@@ -142,6 +142,13 @@ fn get_cli_matches() -> ArgMatches {
         )
         .arg(
             arg!(
+                --"retry-count" <COUNT> "Number of times to retry failed tests before marking them as failed (for handling flaky tests)"
+            )
+            .required(false)
+            .value_parser(value_parser!(usize)),
+        )
+        .arg(
+            arg!(
                 --"failure-screenshot-location" <DIR> "If set, Toolproof will screenshot the browser to this location when a test fails (if applicable)"
             )
             .required(false)
@@ -230,6 +237,11 @@ pub struct ToolproofParams {
     /// If set, Toolproof will screenshot the browser to this location when a test fails (if applicable)
     #[setting(env = "TOOLPROOF_FAILURE_SCREENSHOT_LOCATION")]
     pub failure_screenshot_location: Option<PathBuf>,
+
+    /// Number of times to retry failed tests before marking them as failed
+    #[setting(env = "TOOLPROOF_RETRY_COUNT")]
+    #[setting(default = 0)]
+    pub retry_count: usize,
 }
 
 // The configuration object used internally
@@ -318,6 +330,10 @@ impl ToolproofParams {
             cli_matches.get_one::<PathBuf>("failure-screenshot-location")
         {
             self.failure_screenshot_location = Some(failure_screenshot_location.clone());
+        }
+
+        if let Some(retry_count) = cli_matches.get_one::<usize>("retry-count") {
+            self.retry_count = *retry_count;
         }
     }
 }
