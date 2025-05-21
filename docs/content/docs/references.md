@@ -2,7 +2,7 @@
 title: "Reference Other Files"
 nav_title: "Reference Other Files"
 nav_section: Root
-weight: 7
+weight: 5
 ---
 
 Toolproof allows you to reference another file and embed its steps.
@@ -44,4 +44,3 @@ steps:
 ```
 
 Toolproof will avoid running this file on its own, but will run the steps if they're embedded into another file.
-

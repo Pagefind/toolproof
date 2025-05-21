@@ -1,182 +1,124 @@
 ---
-title: "Toolproof Overview"
-nav_title: "Overview"
+title: "Getting Started with Toolproof"
+nav_title: "Quick Start"
 nav_section: Root
 weight: 1
 ---
 
-Toolproof evaluates all `*.toolproof.yml` files it finds. Each file contains exactly one test.
+Toolproof runs after your application build, testing how users would interact with your software. With Toolproof, you write tests in a natural(ish) language syntax that's both easy to read and powerful.
 
-Here's a simple file that tests the `mv` command:
+Since Toolproof works with your built application, we'll start by creating a simple test file and then run Toolproof against it.
+
+## Creating Your First Test
+
+Create a file named `hello.toolproof.yml` with the following content:
 
 ```yml
-name: mv moves files
+name: Hello World Test
 
 steps:
-  - I have a "start.txt" file with the content "hello world"
-  - I run "mv start.txt end.txt"
-  - The file "end.txt" should contain "hello"
-  - snapshot: The file "end.txt"
-    snapshot_content: |-
-      ╎hello world
+  - step: I have a "hello.txt" file with the content "Hello, World!"
+  - step: I run "cat hello.txt"
+  - step: stdout should contain "Hello"
 ```
 
-## Syntax
+This test should describe itself pretty well, and be readable by someone with a minimum of technical knowledge.
 
-Toolproof files contain a `steps` array, where each item is a test step. The steps you write are matched to Toolproof functions.
+## Running Toolproof
 
-Toolproof's syntax uses plaintext sentences with placeholders,
-for example the first step in our example file above matches the Toolproof function:
-```
-I have a {name} file with the content {text}
-```
+Run Toolproof using npx:
 
-When writing steps, you can specify the values inline using either single or double quotes:
-```yaml
-steps:
-  - I have a "start.txt" file with the content 'hello world'
-```
-
-Alternatively, you can specify the values using keys, which can be preferred for long instructions or multiline values.
-When doing this, place the step inside an object under a `step` key, and use curly braces to match the key names:
-```yaml
-steps:
-  - step: I have a {filename} file with the content {text}
-    filename: start.txt
-    text: |-
-      hello
-      world
-```
-
-By convention, these steps are being written in yaml without quotes. They can also be wrapped in quotes when needed:
-```yaml
-steps:
-  - "I have a 'start.txt' file with the content 'hello world'"
-```
-
-## Terminology
-
-Steps are comprised of the following elements:
-
-### Instructions
-
-Instructions generally _do_ things. For example, creating a file:
-```
-I have a {file} with the content {text}
-```
-
-or running a command in a terminal:
-```
-I run {command}
-```
-
-Instructions can be a step on their own:
-```yaml
-steps:
-  - I run "echo 'hi'"
-```
-
-### Retrievals
-
-Retrievals get values, and are used either in assertions or snapshots. For example, getting the contents of a file:
-```
-The file {name}
-```
-
-or getting the contents of stdout:
-```
-stdout
-```
-
-Retrievals can be used for snapshots, or can be paired with an Assertion to make up a step.
-
-### Assertions
-
-Assertions test values. For example, testing exact matches:
-```
-be exactly {expected}
-```
-
-or having a value:
-```
-not be empty
-```
-
-To make up a step, join an Assertion to a Retrieval with `should`:
-```yaml
-steps:
-  - The file "index.html" should not be empty
-  - stdout should contain "hello"
-```
-
-### Snapshots
-
-Any Retrieval can also drive a snapshot. To do so, place the step inside an object under a `snapshot` key:
-```yaml
-steps:
-  - snapshot: stdout
-  - snapshot: The file "index.html"
-```
-
-After running Toolproof in interactive mode and accepting changes, the file will be updated to:
-```yaml
-steps:
-  - snapshot: stdout
-    snapshot_content: |-
-      ╎contents of
-      ╎stdout go here
-  - snapshot: The file "index.html"
-    snapshot_content: |-
-      ╎<body>
-      ╎  <h1>Hello World</h1>
-      ╎</body>
-```
-
-In future runs, Toolproof will ensure the retrieved value matches the `snapshot_content` key. Running Toolproof in
-interactive mode (`-i`) will also allow you to accept the changes and update the file automatically.
-
-### Snapshots
-
-Any Retrieval can also drive an extract. To do so, place the step inside an object under a `extract` key, alongside an `extract_location` key:
-```yaml
-steps:
-  - extract: stdout
-    extract_location: "%toolproof_process_directory%/extracted_stdout.txt"
-```
-
-After running Toolproof, the value will be written to that file.
-
-Toolproof never reads this file, so this step doesn't have any bearing on the success of the test.
-Instead, this is intended to pull information from tests to use in other tooling.
-
-## Test environment
-
-Toolproof automatically runs tests in a temporary directory that is discarded at the end of a run.
-
-Any steps that interact with files will act in this directory, and commands will run relative to this directory.
-
-## Placeholders
-
-Placeholders can be supplied for tests that require dynamic values. These can be supplied in a config file or on the command line:
 ```bash
-npx toolproof --placeholders project_dir="$(pwd)" -i
+npx toolproof
 ```
 
-These can be accessed inside any value:
-```yaml
+Toolproof will find all `.toolproof.yml` files in your project and run them. You should see output indicating that your test has passed.
+
+## Test Environment
+
+Toolproof runs each test in a temporary directory that is discarded after the test completes. All file operations and commands run relative to this directory unless absolute paths are used.
+
+## Adding Snapshots
+
+Let's enhance our test with a snapshot. Update `hello.toolproof.yml`:
+
+```yml
+name: Hello World Test
+
 steps:
-  - I run "%project_dir%/index.js"
-  - step: stdout should contain {text}
-    text: |-
-      Hello world from %project_dir%
+  - step: I have a "hello.txt" file with the content "Hello, World!"
+  - step: I run "cat hello.txt"
+  - step: stdout should contain "Hello"
+  - snapshot: stdout
 ```
 
-Toolproof provides some placeholders by default:
+Run Toolproof in interactive mode to capture the snapshot:
 
-| placeholder                      | value                                                            |
-| -------------------------------- | ---------------------------------------------------------------- |
-| toolproof_process_directory      | The working directory that you ran the Toolproof command in      |
-| toolproof_process_directory_unix | toolproof_process_directory, but with forward slash delimiters   |
-| toolproof_test_directory         | The temporary directory that the current test is running in      |
-| toolproof_test_directory_unix    | toolproof_test_directory, but with forward slash delimiters      |
-| toolproof_test_port              | If serving files, the port that Toolproof is using for this test |
+```bash
+npx toolproof -i
+```
+
+When prompted to accept the snapshot, type `y`. Toolproof will update your test file with the captured snapshot:
+
+```yml
+name: Hello World Test
+
+steps:
+  - step: I have a "hello.txt" file with the content "Hello, World!"
+  - step: I run "cat hello.txt"
+  - step: stdout should contain "Hello"
+  - snapshot: stdout
+    snapshot_content: |-
+      ╎Hello, World!
+```
+
+In future test runs, Toolproof will verify that the output exactly matches the snapshot.
+
+## Testing a Web Application
+
+Toolproof can also test web applications. Create a file named `web.toolproof.yml`:
+
+```yml
+name: Web Test
+
+steps:
+  - step: I have a "index.html" file with the content {html}
+    html: |-
+      <html>
+        <head>
+          <title>Test Page</title>
+        </head>
+        <body>
+          <h1>Hello World</h1>
+          <button id="btn">Click Me</button>
+          <p id="result"></p>
+          <script>
+            document.querySelector('#btn').addEventListener('click', function() {
+              document.querySelector('#result').textContent = 'Button clicked!';
+            });
+          </script>
+        </body>
+      </html>
+  - step: I serve the directory "."
+  - step: In my browser, I load "/"
+  - step: In my browser, I click the selector "#btn"
+  - step: In my browser, the result of {js} should be exactly "Button clicked!"
+    js: return await toolproof.querySelector('#result').textContent;
+```
+
+Run this test with:
+
+```bash
+npx toolproof
+```
+
+## Next Steps
+
+- [Syntax and Terminology](syntax/): Learn the full syntax for writing tests
+- [Browser Testing](browser-testing/): Comprehensive guide to testing web applications
+- [Using Macros](macros/): Create reusable step sequences
+- [Snapshot Testing](snapshots/): Snapshot test long or complex output
+- [Configuration](configuration/): Configure Toolproof for your project
+- [Platform-Specific Testing](platforms/): Write tests that work across operating systems
+
+For a complete list of available functions, see the [Functions Glossary](functions/).
