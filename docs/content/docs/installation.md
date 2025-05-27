@@ -2,51 +2,74 @@
 title: "Installing and running Toolproof"
 nav_title: "Installing Toolproof"
 nav_section: Root
-weight: 5
+weight: 3
 ---
 
-Toolproof is a static binary with no dynamic dependencies, so in most cases will be simple to install and run. Toolproof is currently supported on Windows, macOS, and Linux distributions.
+### Running via npx (Recommended)
 
-## Ensuring Toolproof is running a supported version
-
-For all installation methods, your Toolproof configuration can specify the supported Toolproof versions.
-
-```yml
-# In toolproof.yml
-supported_versions: ">=0.10.3"
-```
-
-This can also be set in a `TOOLPROOF_SUPPORTED_VERSIONS` environment variable.
-
-## Running via npx
+The easiest way to get started is through npm:
 
 ```bash
 npx toolproof
 ```
 
-Toolproof publishes a [wrapper package through npm](https://www.npmjs.com/package/toolproof), which is the easiest way to get started. This package will download the correct [binary of the latest release](https://github.com/CloudCannon/toolproof/releases) as an npm dependency for your platform and run it.
+This wrapper package downloads the correct [binary](https://github.com/CloudCannon/toolproof/releases) for your platform and runs it.
 
-Specific versions can be run by passing a version tag:
+You can specify versions with:
 
 ```bash
 npx toolproof@latest
-
 npx toolproof@v0.1.0
 ```
 
-## Downloading a precompiled binary
+### Downloading a Precompiled Binary
 
-If you prefer to install Toolproof yourself, you can download a [precompiled release from GitHub](https://github.com/CloudCannon/flatlake/releases) and run the binary directly:
+You can download a [precompiled release from GitHub](https://github.com/CloudCannon/toolproof/releases) and run it directly:
 
 ```bash
 ./toolproof
 ```
 
-## Building from source
+### Building from Source
 
-If you have [Rust and Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html) installed, you can run `cargo install toolproof` to build from source.
+If you have [Rust and Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html) installed:
 
 ```bash
 cargo install toolproof
 toolproof
 ```
+
+## Browser Requirements
+
+For browser testing functionality, Toolproof requires Chrome, Chromium, or Microsoft Edge to be installed on your system. See the [Browser Testing](browser-testing/) page for detailed installation and configuration requirements.
+
+## Basic Usage
+
+```bash
+# Run all tests
+npx toolproof
+
+# Run in interactive mode (for updating snapshots)
+npx toolproof -i
+
+# Run a specific test
+npx toolproof --name "My Test Name"
+
+# See all options
+npx toolproof --help
+```
+
+## Ensuring Compatible Versions
+
+You can specify supported Toolproof versions in your configuration:
+
+```yml
+# In toolproof.yml
+supported_versions: ">=0.15.0"
+```
+
+This can also be set with the `TOOLPROOF_SUPPORTED_VERSIONS` environment variable.
+
+## Additional Options
+
+For a complete list of command-line options, environment variables, and configuration settings, see the [Configuration and Options](configuration/) page.
