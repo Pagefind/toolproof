@@ -8,12 +8,7 @@ pub fn write_yaml_snapshots(input_doc: &str, hydrated_file: &ToolproofTestFile) 
     for (step_id, step) in hydrated_file.steps.iter().enumerate() {
         match step {
             ToolproofTestStep::Snapshot {
-                snapshot,
-                snapshot_content,
-                args,
-                orig,
-                state,
-                platforms,
+                snapshot_content, ..
             } => {
                 let Some(snapshot_content) = snapshot_content else {
                     continue;

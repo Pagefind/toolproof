@@ -1,11 +1,9 @@
-use std::collections::HashMap;
-
 use async_trait::async_trait;
 
 use crate::civilization::Civilization;
-use crate::errors::{ToolproofInputError, ToolproofStepError};
+use crate::errors::ToolproofStepError;
 
-use super::{SegmentArgs, ToolproofAssertion, ToolproofInstruction, ToolproofRetriever};
+use super::{SegmentArgs, ToolproofInstruction, ToolproofRetriever};
 
 mod env_var {
     use super::*;
@@ -135,7 +133,7 @@ mod stdio {
 
         async fn run(
             &self,
-            args: &SegmentArgs<'_>,
+            _args: &SegmentArgs<'_>,
             civ: &mut Civilization,
         ) -> Result<serde_json::Value, ToolproofStepError> {
             let Some(output) = &civ.last_command_output else {
@@ -164,7 +162,7 @@ mod stdio {
 
         async fn run(
             &self,
-            args: &SegmentArgs<'_>,
+            _args: &SegmentArgs<'_>,
             civ: &mut Civilization,
         ) -> Result<serde_json::Value, ToolproofStepError> {
             let Some(output) = &civ.last_command_output else {

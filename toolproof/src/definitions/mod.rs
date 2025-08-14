@@ -1,13 +1,12 @@
-use std::{collections::HashMap, hash::Hash};
+use std::collections::HashMap;
 
 use async_trait::async_trait;
 
 use crate::{
     civilization::Civilization,
-    errors::{ToolproofInputError, ToolproofStepError},
-    options::{ToolproofContext, ToolproofParams},
+    errors::ToolproofStepError,
     parser::parse_segments,
-    segments::{SegmentArgs, ToolproofSegment, ToolproofSegments},
+    segments::{SegmentArgs, ToolproofSegments},
 };
 
 mod assertions;
@@ -115,8 +114,8 @@ mod test {
 
             async fn run(
                 &self,
-                args: &SegmentArgs<'_>,
-                civ: &mut Civilization,
+                _args: &SegmentArgs<'_>,
+                _civ: &mut Civilization,
             ) -> Result<(), ToolproofStepError> {
                 Ok(())
             }
@@ -153,8 +152,8 @@ mod test {
 
             async fn run(
                 &self,
-                args: &SegmentArgs<'_>,
-                civ: &mut Civilization,
+                _args: &SegmentArgs<'_>,
+                _civ: &mut Civilization,
             ) -> Result<serde_json::Value, ToolproofStepError> {
                 Ok(serde_json::Value::Null)
             }
@@ -190,9 +189,9 @@ mod test {
 
             async fn run(
                 &self,
-                base_value: serde_json::Value,
-                args: &SegmentArgs<'_>,
-                civ: &mut Civilization,
+                _base_value: serde_json::Value,
+                _args: &SegmentArgs<'_>,
+                _civ: &mut Civilization,
             ) -> Result<(), ToolproofStepError> {
                 Ok(())
             }

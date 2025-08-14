@@ -1,8 +1,6 @@
-use clap::{
-    arg, builder::PossibleValuesParser, command, value_parser, Arg, ArgAction, ArgMatches, Command,
-};
+use clap::{arg, builder::PossibleValuesParser, command, value_parser, ArgMatches};
 use miette::IntoDiagnostic;
-use schematic::{derive_enum, Config, ConfigEnum, ConfigLoader};
+use schematic::{Config, ConfigEnum, ConfigLoader};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, env, path::PathBuf};
 
@@ -48,7 +46,7 @@ pub fn configure() -> ToolproofContext {
 
             match ToolproofContext::load(result.config) {
                 Ok(ctx) => ctx,
-                Err(e) => {
+                Err(_e) => {
                     eprintln!("Failed to initialize configuration");
                     std::process::exit(1);
                 }

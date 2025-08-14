@@ -7,34 +7,34 @@ license = "MIT"
 
 [dependencies]
 thiserror = "1.0"
-wax = "0.5.0"
+wax = "0.6.0"
 tokio = { version = "1", features = ["full", "tracing"] }
 futures = "0.3"
-async-recursion = "1.1.0"
+async-recursion = "1.1.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.9"
 serde_json = "1"
 nondestructive = "0.0.20"
-similar = { version = "2.4.0", features = ["inline"] }
-inventory = "0.3.15"
+similar = { version = "2.7.0", features = ["inline"] }
+inventory = "0.3.20"
 portpicker = "0.1"
 actix-web = "4"
 actix-files = "0.6"
 json_dotpath = "1.1.0"
-tempfile = "3.0.2"
+tempfile = "3.20.0"
 similar-string = "1.4.3"
-console = "0.15"
+console = "0.16"
 dialoguer = { version = "0.11", features = ["fuzzy-select"] }
-async-trait = "0.1.78"
+async-trait = "0.1.88"
 pagebrowse = "0.1.1"
 chromiumoxide = "0.7"
 clap = { version = "4", features = ["cargo"] }
-schematic = { version = "0.18.4", features = ["yaml"] }
-strip-ansi-escapes = "0.2.0"
+schematic = { version = "0.18.12", features = ["yaml"] }
+strip-ansi-escapes = "0.2.1"
 path-slash = "0.2.1"
 normalize-path = "0.2.1"
 miette = { version = "7", features = ["fancy"] }
-semver = "1.0.25"
+semver = "1.0.26"
 
 [profile.dev.package.similar]
 opt-level = 3

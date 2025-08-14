@@ -1,8 +1,7 @@
 use std::{collections::HashMap, hash::Hash};
 
-use crate::{civilization::Civilization, errors::ToolproofInputError, options::ToolproofContext};
+use crate::{civilization::Civilization, errors::ToolproofInputError};
 
-use async_trait::async_trait;
 use path_slash::{PathBufExt, PathExt};
 use serde_json::Value;
 
@@ -292,9 +291,7 @@ mod test {
 
     use crate::{
         civilization::Civilization,
-        definitions::{register_instructions, ToolproofInstruction},
-        errors::ToolproofStepError,
-        options::ToolproofParams,
+        options::{ToolproofContext, ToolproofParams},
         parser::parse_segments,
         universe::Universe,
     };
