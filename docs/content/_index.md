@@ -44,6 +44,6 @@ Install and run Toolproof with npx:
 npx toolproof
 ```
 
-Or install the binary directly from [GitHub releases](https://github.com/CloudCannon/toolproof/releases).
+Or install the binary directly from [GitHub releases](https://github.com/pagefind/toolproof/releases).
 
 See the [Quick Start Guide](docs/) for more information on setting up your first test.
