@@ -9,6 +9,19 @@
 
 ## Unreleased
 
+* Fixed Chrome browser windows not being closed after a test run
+* Updated dependencies
+  * Updated wax to 0.6.0
+  * Updated async-recursion to 1.1.1
+  * Updated similar to 2.7.0
+  * Updated inventory to 0.3.20
+  * Updated tempfile to 3.20.0
+  * Updated console to 0.16
+  * Updated async-trait to 0.1.88
+  * Updated schematic to 0.18.12
+  * Updated strip-ansi-escapes to 0.2.1
+  * Updated semver to 1.0.26
+
 ## v0.15.0 (May 16, 2025)
 
 * Added a `--retry-count` option to retry failed tests
