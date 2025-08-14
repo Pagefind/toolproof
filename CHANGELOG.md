@@ -9,6 +9,8 @@
 
 ## Unreleased
 
+## v0.15.1 (August 14, 2025)
+
 * Fixed Chrome browser windows not being closed after a test run
 * Updated dependencies
   * Updated wax to 0.6.0
