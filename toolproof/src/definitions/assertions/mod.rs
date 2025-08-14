@@ -1,11 +1,9 @@
-use std::collections::HashMap;
-
 use async_trait::async_trait;
 
 use crate::civilization::Civilization;
-use crate::errors::{ToolproofInputError, ToolproofInternalError, ToolproofStepError};
+use crate::errors::{ToolproofInternalError, ToolproofStepError};
 
-use super::{SegmentArgs, ToolproofAssertion, ToolproofInstruction, ToolproofRetriever};
+use super::{SegmentArgs, ToolproofAssertion};
 
 fn value_contains_value(
     base: &serde_json::Value,
@@ -87,7 +85,7 @@ fn value_type(val: &serde_json::Value) -> &'static str {
 }
 
 mod contain {
-    use crate::errors::{ToolproofInternalError, ToolproofTestFailure};
+    use crate::errors::ToolproofTestFailure;
 
     use super::*;
 
@@ -107,7 +105,7 @@ mod contain {
             &self,
             base_value: serde_json::Value,
             args: &SegmentArgs<'_>,
-            civ: &mut Civilization,
+            _civ: &mut Civilization,
         ) -> Result<(), ToolproofStepError> {
             let expected = args.get_value("expected")?;
 
@@ -143,7 +141,7 @@ mod contain {
             &self,
             base_value: serde_json::Value,
             args: &SegmentArgs<'_>,
-            civ: &mut Civilization,
+            _civ: &mut Civilization,
         ) -> Result<(), ToolproofStepError> {
             let expected = args.get_value("expected")?;
 
@@ -163,7 +161,7 @@ mod contain {
 }
 
 mod exactly {
-    use crate::errors::{ToolproofInternalError, ToolproofTestFailure};
+    use crate::errors::ToolproofTestFailure;
 
     use super::*;
 
@@ -183,7 +181,7 @@ mod exactly {
             &self,
             base_value: serde_json::Value,
             args: &SegmentArgs<'_>,
-            civ: &mut Civilization,
+            _civ: &mut Civilization,
         ) -> Result<(), ToolproofStepError> {
             let expected = args.get_value("expected")?;
 
@@ -217,7 +215,7 @@ mod exactly {
             &self,
             base_value: serde_json::Value,
             args: &SegmentArgs<'_>,
-            civ: &mut Civilization,
+            _civ: &mut Civilization,
         ) -> Result<(), ToolproofStepError> {
             let expected = args.get_value("expected")?;
 
@@ -237,7 +235,7 @@ mod exactly {
 }
 
 mod empty {
-    use crate::errors::{ToolproofInternalError, ToolproofTestFailure};
+    use crate::errors::ToolproofTestFailure;
 
     use super::*;
 
@@ -256,8 +254,8 @@ mod empty {
         async fn run(
             &self,
             base_value: serde_json::Value,
-            args: &SegmentArgs<'_>,
-            civ: &mut Civilization,
+            _args: &SegmentArgs<'_>,
+            _civ: &mut Civilization,
         ) -> Result<(), ToolproofStepError> {
             if value_is_empty(&base_value) {
                 Ok(())
@@ -289,8 +287,8 @@ mod empty {
         async fn run(
             &self,
             base_value: serde_json::Value,
-            args: &SegmentArgs<'_>,
-            civ: &mut Civilization,
+            _args: &SegmentArgs<'_>,
+            _civ: &mut Civilization,
         ) -> Result<(), ToolproofStepError> {
             if value_is_empty(&base_value) {
                 Err(ToolproofStepError::Assertion(

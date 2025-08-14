@@ -1,5 +1,5 @@
 use async_recursion::async_recursion;
-use futures::FutureExt;
+
 use normalize_path::NormalizePath;
 use similar_string::find_best_similarity;
 use std::{
@@ -9,8 +9,6 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 use tokio::time::{self, Duration};
-
-use console::style;
 
 use crate::{
     civilization::Civilization,
@@ -226,9 +224,10 @@ async fn run_toolproof_steps(
             crate::ToolproofTestStep::Instruction {
                 step,
                 args,
-                orig,
+
                 state,
                 platforms,
+                ..
             } => {
                 let Some((reference_segments, instruction)) =
                     civ.universe.instructions.get_key_value(step)
@@ -270,9 +269,10 @@ async fn run_toolproof_steps(
                 retrieval,
                 assertion,
                 args,
-                orig,
+
                 state,
                 platforms,
+                ..
             } => {
                 let Some((reference_ret, retrieval_step)) =
                     civ.universe.retrievers.get_key_value(retrieval)

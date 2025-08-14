@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use async_trait::async_trait;
 
 use crate::civilization::Civilization;
@@ -46,7 +44,6 @@ mod new_file {
 }
 
 mod read_files {
-    use crate::errors::ToolproofTestFailure;
 
     use super::*;
 

@@ -1,4 +1,4 @@
-use std::{fmt::Display, io, path::PathBuf, sync::Arc};
+use std::{io, sync::Arc};
 
 use console::{Key, Term};
 use dialoguer::{theme::ColorfulTheme, Confirm, FuzzySelect, Select};

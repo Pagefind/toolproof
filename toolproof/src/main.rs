@@ -656,22 +656,8 @@ async fn main_inner() -> Result<(), ()> {
                                         }
                                     }
                                 }
-                                ToolproofTestStep::Extract {
-                                    extract,
-                                    extract_location,
-                                    args,
-                                    orig,
-                                    state,
-                                    platforms,
-                                } => todo!(),
-                                ToolproofTestStep::Snapshot {
-                                    snapshot,
-                                    snapshot_content,
-                                    args,
-                                    orig,
-                                    state,
-                                    platforms,
-                                } => todo!(),
+                                ToolproofTestStep::Extract { .. } => todo!(),
+                                ToolproofTestStep::Snapshot { .. } => todo!(),
                             }
                         }
                         _ => {
