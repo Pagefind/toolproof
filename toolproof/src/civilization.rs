@@ -37,12 +37,19 @@ pub struct Civilization<'u> {
 }
 
 impl<'u> Civilization<'u> {
-    pub async fn shutdown(&mut self) {
+    pub async fn shutdown(self) {
         for handle in &self.handles {
             handle.stop(false).await;
         }
         for thread in &self.threads {
             thread.abort();
+        }
+
+        if let Some(BrowserWindow::Chrome(window)) = self.window {
+            window
+                .close()
+                .await
+                .expect("Failed to close browser window");
         }
     }
 }
