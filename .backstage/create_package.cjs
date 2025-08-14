@@ -19,12 +19,12 @@ fs.writeFileSync(
     license: "MIT",
     repository: {
       type: "git",
-      url: "git+https://github.com/cloudcannon/toolproof.git",
+      url: "git+https://github.com/pagefind/toolproof.git",
     },
-    author: "CloudCannon",
+    author: "Pagefind",
     os: [os],
     cpu: [cpu],
-  })
+  }),
 );
 
 fs.writeFileSync(
@@ -32,5 +32,5 @@ fs.writeFileSync(
   `# Toolproof
 
 The platform-specific binary for toolproof on ${os}/${cpu}
-`
+`,
 );

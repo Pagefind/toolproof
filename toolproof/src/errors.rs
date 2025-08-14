@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use chromiumoxide::error::CdpError;
 use pagebrowse::PagebrowseError;
 use thiserror::Error;

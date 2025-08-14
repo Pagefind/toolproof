@@ -1,4 +1,4 @@
-module github.com/cloudcannon/toolproof/docs
+module github.com/pagefind/toolproof/docs
 
 go 1.18
 

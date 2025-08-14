@@ -3,7 +3,7 @@
   "displayName": "Toolproof YAML Testing Syntax",
   "repository": {
     "type": "git",
-    "url": "https://github.com/CloudCannon/toolproof/"
+    "url": "https://github.com/pagefind/toolproof/"
   },
   "publisher": "cc-oss",
   "description": "Syntax highlighting for Toolproof's YAML testing format",

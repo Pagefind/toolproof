@@ -1,8 +1,6 @@
-use std::collections::HashMap;
-
 use super::{SegmentArgs, ToolproofInstruction};
 use crate::civilization::Civilization;
-use crate::errors::{ToolproofInputError, ToolproofStepError};
+use crate::errors::ToolproofStepError;
 
 use async_trait::async_trait;
 
@@ -10,7 +8,6 @@ mod host_dir {
     use std::time::Duration;
 
     use actix_web::{App, HttpServer};
-    use futures::pending;
     use schematic::color::owo::OwoColorize;
     use tokio::time::sleep;
 

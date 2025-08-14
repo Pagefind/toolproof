@@ -2,13 +2,10 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use chromiumoxide::cdp::browser_protocol::page::{
-    CaptureScreenshotFormat, CaptureScreenshotParams,
-};
+use chromiumoxide::cdp::browser_protocol::page::CaptureScreenshotParams;
 use chromiumoxide::cdp::browser_protocol::target::{
     CreateBrowserContextParams, CreateTargetParams,
 };
-use chromiumoxide::cdp::js_protocol::runtime::RemoteObjectType;
 use chromiumoxide::error::CdpError;
 use chromiumoxide::handler::viewport::Viewport;
 use chromiumoxide::page::ScreenshotParams;
@@ -627,10 +624,6 @@ mod load_page {
 }
 
 mod eval_js {
-    use std::time::Duration;
-
-    use futures::TryFutureExt;
-    use tokio::time::sleep;
 
     use crate::errors::{ToolproofInternalError, ToolproofTestFailure};
 
@@ -747,7 +740,7 @@ mod eval_js {
 
         async fn run(
             &self,
-            args: &SegmentArgs<'_>,
+            _args: &SegmentArgs<'_>,
             civ: &mut Civilization,
         ) -> Result<serde_json::Value, ToolproofStepError> {
             eval_and_return_js("return toolproof_log_events[`ALL`];".to_string(), civ).await
@@ -756,7 +749,6 @@ mod eval_js {
 }
 
 pub mod screenshots {
-    use crate::errors::{ToolproofInternalError, ToolproofTestFailure};
 
     use super::*;
 

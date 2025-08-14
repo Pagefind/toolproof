@@ -7,9 +7,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/CloudCannon/toolproof.git"
+    "url": "git+https://github.com/pagefind/toolproof.git"
   },
-  "author": "CloudCannon",
+  "author": "Pagefind",
   "license": "MIT",
   "optionalDependencies": {
     "@toolproof/linux-x64": "0.0.0",
@@ -19,9 +19,6 @@
     "@toolproof/windows-x64": "0.0.0"
   },
   "keywords": [
-    "CloudCannon",
-    "Cloud",
-    "Cannon",
     "toolproof",
     "tool",
     "proof",
@@ -30,7 +27,7 @@
     "test"
   ],
   "bugs": {
-    "url": "https://github.com/CloudCannon/toolproof/issues"
+    "url": "https://github.com/pagefind/toolproof/issues"
   },
-  "homepage": "https://github.com/CloudCannon/toolproof#readme"
+  "homepage": "https://github.com/pagefind/toolproof#readme"
 }

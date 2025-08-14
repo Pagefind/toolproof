@@ -13,7 +13,7 @@ The easiest way to get started is through npm:
 npx toolproof
 ```
 
-This wrapper package downloads the correct [binary](https://github.com/CloudCannon/toolproof/releases) for your platform and runs it.
+This wrapper package downloads the correct [binary](https://github.com/pagefind/toolproof/releases) for your platform and runs it.
 
 You can specify versions with:
 
@@ -24,7 +24,7 @@ npx toolproof@v0.1.0
 
 ### Downloading a Precompiled Binary
 
-You can download a [precompiled release from GitHub](https://github.com/CloudCannon/toolproof/releases) and run it directly:
+You can download a [precompiled release from GitHub](https://github.com/pagefind/toolproof/releases) and run it directly:
 
 ```bash
 ./toolproof
