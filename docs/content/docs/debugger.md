@@ -12,10 +12,14 @@ Toolproof's debugger mode allows you to run tests step-by-step, making it easier
 Run Toolproof with the `--debugger` flag along with a specific test:
 
 ```bash
+# Debug a test by name
 npx toolproof --debugger --name "My Test Name"
+
+# Debug a specific test file
+npx toolproof --debugger --path tests/my-test.toolproof.yml
 ```
 
-Debugger mode requires running a single test. If you don't specify a test name, Toolproof will show an error.
+Debugger mode requires running a single test. If you don't specify a test, Toolproof will show an error.
 
 When running in debugger mode:
 

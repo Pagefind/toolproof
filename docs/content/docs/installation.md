@@ -52,8 +52,11 @@ npx toolproof
 # Run in interactive mode (for updating snapshots)
 npx toolproof -i
 
-# Run a specific test
+# Run a test by name
 npx toolproof --name "My Test Name"
+
+# Run a test file or directory
+npx toolproof --path tests/integration
 
 # See all options
 npx toolproof --help

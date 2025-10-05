@@ -13,6 +13,7 @@ use crate::{
 pub enum RunMode {
     All,
     One(String),
+    Path(String),
 }
 
 impl From<dialoguer::Error> for ToolproofInternalError {
