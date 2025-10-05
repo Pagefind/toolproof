@@ -42,7 +42,8 @@ All configuration options that can be set via command-line or environment variab
 | `porcelain` | Boolean | Reduce logging to be stable (machine-readable output) |
 | `interactive` | Boolean | Run toolproof in interactive mode |
 | `all` | Boolean | Run all tests when in interactive mode |
-| `run_name` | String | Exact name of a test to run (case-sensitive) |
+| `name` | String | Exact name of a test to run (case-sensitive) |
+| `path` | String | Path to a test file or directory to run |
 | `browser` | String | Specify which browser to use (`chrome` or `pagebrowse`) |
 | `concurrency` | Number | How many tests should be run concurrently |
 | `timeout` | Number | How long in seconds until a step times out |
@@ -73,6 +74,12 @@ npx toolproof --root ./tests
 # Run a specific test by name
 npx toolproof --name "My Test Name"
 
+# Run a specific test file
+npx toolproof --path tests/my-test.toolproof.yml
+
+# Run all tests in a directory
+npx toolproof --path tests/integration
+
 # Provide placeholders
 npx toolproof --placeholders project_dir="$(pwd)" api_key=$API_KEY
 
@@ -96,6 +103,7 @@ npx toolproof -c 20
 | `--timeout <NUM>` | How long in seconds until a step times out |
 | `--browser-timeout <NUM>` | How long in seconds until actions in a browser time out |
 | `-n, --name <NAME>` | Exact name of a test to run |
+| `-p, --path <PATH>` | Path to a test file or directory to run |
 | `--browser <IMPL>` | Specify which browser to use for tests (chrome or pagebrowse, default: chrome) |
 | `--retry-count <COUNT>` | Number of times to retry failed tests before marking them as failed |
 | `--failure-screenshot-location <DIR>` | If set, Toolproof will screenshot the browser to this location when a test fails |
@@ -110,7 +118,8 @@ Most options can also be set using environment variables:
 | `TOOLPROOF_ROOT` | The location from which to look for toolproof test files |
 | `TOOLPROOF_VERBOSE` | Print verbose logging while running tests |
 | `TOOLPROOF_PORCELAIN` | Reduce logging to be stable |
-| `TOOLPROOF_RUN_NAME` | Run a specific test |
+| `TOOLPROOF_RUN_NAME` | Run a specific test by name |
+| `TOOLPROOF_RUN_PATH` | Path to a test file or directory to run |
 | `TOOLPROOF_BROWSER` | Specify which browser to use (chrome or pagebrowse) |
 | `TOOLPROOF_CONCURRENCY` | How many tests should be run concurrently |
 | `TOOLPROOF_TIMEOUT` | How long in seconds until a step times out |

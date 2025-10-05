@@ -133,6 +133,13 @@ fn get_cli_matches() -> ArgMatches {
         )
         .arg(
             arg!(
+                -p --path <PATH> "Path to a specific test file or directory to run")
+                .long_help("Run tests from a specific file or all tests in a directory")
+                .required(false)
+                .value_parser(value_parser!(PathBuf)),
+        )
+        .arg(
+            arg!(
                 --browser <IMPL> ... "Specify which browser to use when running browser automation tests"
             )
             .required(false)
@@ -199,6 +206,10 @@ pub struct ToolproofParams {
     /// Run a specific test
     #[setting(env = "TOOLPROOF_RUN_NAME")]
     pub run_name: Option<String>,
+
+    /// Run tests from a specific file or directory path
+    #[setting(env = "TOOLPROOF_RUN_PATH")]
+    pub run_path: Option<PathBuf>,
 
     /// Specify which browser to use when running browser automation tests
     #[setting(env = "TOOLPROOF_BROWSER")]
@@ -300,6 +311,10 @@ impl ToolproofParams {
 
         if let Some(name) = cli_matches.get_one::<String>("name") {
             self.run_name = Some(name.clone());
+        }
+
+        if let Some(path) = cli_matches.get_one::<PathBuf>("path") {
+            self.run_path = Some(path.clone());
         }
 
         if let Some(root) = cli_matches.get_one::<PathBuf>("root") {
