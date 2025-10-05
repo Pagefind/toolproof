@@ -6,7 +6,7 @@ description = "Standalone test suite for CLI tools and applications"
 license = "MIT"
 
 [dependencies]
-thiserror = "1.0"
+thiserror = "2.0"
 wax = "0.6.0"
 tokio = { version = "1", features = ["full", "tracing"] }
 futures = "0.3"

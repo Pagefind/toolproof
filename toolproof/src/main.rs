@@ -389,6 +389,24 @@ async fn main_inner() -> Result<(), ()> {
         };
 
         RunMode::One(path.clone())
+    } else if let Some(run_path) = universe.ctx.params.run_path.as_ref() {
+        // Convert the provided path to an absolute path
+        let absolute_path = if run_path.is_absolute() {
+            run_path.clone()
+        } else {
+            universe.ctx.working_directory.join(run_path)
+        };
+
+        // Normalize the path for comparison
+        let normalized_path = absolute_path.normalize();
+
+        // Check if the path exists and is a file or directory
+        if !absolute_path.exists() {
+            eprintln!("Path does not exist: {}", run_path.display());
+            return Err(());
+        }
+
+        RunMode::Path(normalized_path.to_string_lossy().into_owned())
     } else if universe.ctx.params.interactive && !universe.ctx.params.all {
         match get_run_mode(&universe) {
             Ok(mode) => mode,
@@ -400,6 +418,45 @@ async fn main_inner() -> Result<(), ()> {
     } else {
         RunMode::All
     };
+
+    // Debugger mode requires running a single test
+    if universe.ctx.params.debugger && !matches!(run_mode, RunMode::One(_)) {
+        eprintln!(
+            "Debugger mode requires running a single test. Please specify a test using --name."
+        );
+        return Err(());
+    }
+
+    // Validate that path-based filtering found at least one test
+    if let RunMode::Path(ref filter_path) = run_mode {
+        let test_root = universe.ctx.params.root.as_ref()
+            .cloned()
+            .unwrap_or_else(|| universe.ctx.working_directory.clone());
+
+        let matching_tests = universe
+            .tests
+            .iter()
+            .filter(|(test_path, v)| {
+                if v.r#type != ToolproofFileType::Test {
+                    return false;
+                }
+
+                // Convert relative test path to absolute for comparison
+                let absolute_test_path = test_root.join(test_path).normalize();
+                let absolute_test_path_str = absolute_test_path.to_string_lossy();
+
+                absolute_test_path_str.as_ref() == filter_path || absolute_test_path_str.starts_with(filter_path.as_str())
+            })
+            .count();
+
+        if matching_tests == 0 {
+            eprintln!(
+                "No tests found matching path: {}",
+                universe.ctx.params.run_path.as_ref().unwrap().display()
+            );
+            return Err(());
+        }
+    }
 
     enum HoldingError {
         TestFailure,
@@ -720,6 +777,40 @@ async fn main_inner() -> Result<(), ()> {
 
                 holding_err.map_err(|e| (test, e))
             }));
+        }
+        RunMode::Path(ref filter_path) => {
+            let test_root = universe.ctx.params.root.as_ref()
+                .cloned()
+                .unwrap_or_else(|| universe.ctx.working_directory.clone());
+
+            for mut test in universe
+                .tests
+                .iter()
+                .filter(|(test_path, v)| {
+                    if v.r#type != ToolproofFileType::Test {
+                        return false;
+                    }
+
+                    // Convert relative test path to absolute for comparison
+                    let absolute_test_path = test_root.join(test_path).normalize();
+                    let absolute_test_path_str = absolute_test_path.to_string_lossy();
+
+                    absolute_test_path_str.as_ref() == filter_path || absolute_test_path_str.starts_with(filter_path.as_str())
+                })
+                .map(|(_, v)| v.clone())
+            {
+                let permit = semaphore.clone().acquire_owned().await.unwrap();
+                let uni = Arc::clone(&universe);
+                hands.push(tokio::spawn(async move {
+                    let start = Instant::now();
+                    let res = run_toolproof_experiment(&mut test, Arc::clone(&uni)).await;
+                    let holding_err = handle_res(uni, (&test, res), start);
+
+                    drop(permit);
+
+                    holding_err.map_err(|e| (test, e))
+                }));
+            }
         }
     }
 

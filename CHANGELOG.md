@@ -9,6 +9,11 @@
 
 ## Unreleased
 
+## v0.16.0 (October 5, 2025)
+
+* Added a `--path` argument that runs all tests under a directory
+* Added debugger mode with `--debugger`, which runs one step at a time in a visible browser
+
 ## v0.15.1 (August 14, 2025)
 
 * Fixed Chrome browser windows not being closed after a test run

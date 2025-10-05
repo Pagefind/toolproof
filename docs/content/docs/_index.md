@@ -116,6 +116,7 @@ npx toolproof
 
 - [Syntax and Terminology](syntax/): Learn the full syntax for writing tests
 - [Browser Testing](browser-testing/): Comprehensive guide to testing web applications
+- [Debugger Mode](debugger/): Step through tests interactively for debugging and development
 - [Using Macros](macros/): Create reusable step sequences
 - [Snapshot Testing](snapshots/): Snapshot test long or complex output
 - [Configuration](configuration/): Configure Toolproof for your project
