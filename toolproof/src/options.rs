@@ -152,6 +152,12 @@ fn get_cli_matches() -> ArgMatches {
             .required(false)
             .value_parser(value_parser!(PathBuf)),
         )
+        .arg(
+            arg!(
+                --debugger ... "Run in debugger mode with step-by-step execution"
+            )
+            .action(clap::ArgAction::SetTrue),
+        )
         .get_matches()
 }
 
@@ -240,6 +246,10 @@ pub struct ToolproofParams {
     #[setting(env = "TOOLPROOF_RETRY_COUNT")]
     #[setting(default = 0)]
     pub retry_count: usize,
+
+    /// Run in debugger mode with step-by-step execution
+    #[setting(env = "TOOLPROOF_DEBUGGER")]
+    pub debugger: bool,
 }
 
 // The configuration object used internally
@@ -332,6 +342,10 @@ impl ToolproofParams {
 
         if let Some(retry_count) = cli_matches.get_one::<usize>("retry-count") {
             self.retry_count = *retry_count;
+        }
+
+        if cli_matches.get_flag("debugger") {
+            self.debugger = true;
         }
     }
 }

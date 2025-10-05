@@ -54,6 +54,7 @@ All configuration options that can be set via command-line or environment variab
 | `supported_versions` | String | Error if Toolproof version doesn't match this range |
 | `failure_screenshot_location` | String | Directory to save browser screenshots when tests fail |
 | `retry_count` | Number | Number of times to retry failed tests before marking as failed |
+| `debugger` | Boolean | Run in debugger mode with step-by-step execution (requires single test) |
 
 ## Command Line Options
 
@@ -98,6 +99,7 @@ npx toolproof -c 20
 | `--browser <IMPL>` | Specify which browser to use for tests (chrome or pagebrowse, default: chrome) |
 | `--retry-count <COUNT>` | Number of times to retry failed tests before marking them as failed |
 | `--failure-screenshot-location <DIR>` | If set, Toolproof will screenshot the browser to this location when a test fails |
+| `--debugger` | Run in debugger mode with step-by-step execution (requires single test with --name) |
 
 ## Environment Variables
 
@@ -118,3 +120,4 @@ Most options can also be set using environment variables:
 | `TOOLPROOF_SUPPORTED_VERSIONS` | Error if Toolproof does not match this version range |
 | `TOOLPROOF_FAILURE_SCREENSHOT_LOCATION` | Location for browser screenshots on test failure |
 | `TOOLPROOF_RETRY_COUNT` | Number of times to retry failed tests |
+| `TOOLPROOF_DEBUGGER` | Run in debugger mode with step-by-step execution |

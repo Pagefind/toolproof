@@ -401,6 +401,14 @@ async fn main_inner() -> Result<(), ()> {
         RunMode::All
     };
 
+    // Debugger mode requires running a single test
+    if universe.ctx.params.debugger && !matches!(run_mode, RunMode::One(_)) {
+        eprintln!(
+            "Debugger mode requires running a single test. Please specify a test using --name."
+        );
+        return Err(());
+    }
+
     enum HoldingError {
         TestFailure,
         SnapFailure { out: String },

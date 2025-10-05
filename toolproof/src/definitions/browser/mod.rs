@@ -63,13 +63,18 @@ pub enum BrowserTester {
     },
 }
 
-async fn try_launch_browser(mut max: usize) -> (Browser, chromiumoxide::Handler) {
+async fn try_launch_browser(mut max: usize, visible: bool) -> (Browser, chromiumoxide::Handler) {
     let mut launch = Err(CdpError::NotFound);
     while launch.is_err() && max > 0 {
         max -= 1;
+        let headless_mode = if visible {
+            chromiumoxide::browser::HeadlessMode::False
+        } else {
+            chromiumoxide::browser::HeadlessMode::New
+        };
         launch = Browser::launch(
             BrowserConfig::builder()
-                .headless_mode(chromiumoxide::browser::HeadlessMode::New)
+                .headless_mode(headless_mode)
                 .user_data_dir(tempdir().expect("testing on a system with a temp dir"))
                 .viewport(Some(Viewport {
                     width: 1600,
@@ -101,7 +106,8 @@ impl BrowserTester {
     async fn initialize(params: &ToolproofParams) -> Self {
         match params.browser {
             crate::options::ToolproofBrowserImpl::Chrome => {
-                let (browser, mut handler) = try_launch_browser(3).await;
+                let visible = params.debugger;
+                let (browser, mut handler) = try_launch_browser(3, visible).await;
 
                 BrowserTester::Chrome {
                     browser: Arc::new(browser),

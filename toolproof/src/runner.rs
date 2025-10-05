@@ -1,6 +1,8 @@
 use async_recursion::async_recursion;
 
+use console::Term;
 use normalize_path::NormalizePath;
+use schematic::color::owo::OwoColorize;
 use similar_string::find_best_similarity;
 use std::{
     collections::HashMap,
@@ -78,6 +80,37 @@ pub async fn run_toolproof_experiment(
     res
 }
 
+fn debugger_pause(step: &ToolproofTestStep, civ: &Civilization) {
+    if !civ.universe.ctx.params.debugger {
+        return;
+    }
+
+    let term = Term::stdout();
+
+    println!("\n{}", "--- DEBUGGER ---".on_blue().bold());
+
+    if let Some(ref tmp_dir) = civ.tmp_dir {
+        println!("Temp directory: {}", tmp_dir.path().to_string_lossy());
+    }
+
+    if let Some(port) = civ.assigned_server_port {
+        println!("Server hosted at: http://localhost:{}", port);
+    }
+
+    println!("\nNext:");
+    println!("  - step: {}", step);
+    let args_pretty = step.args_pretty();
+    if !args_pretty.trim().is_empty() {
+        for line in args_pretty.lines() {
+            println!("    {}", line);
+        }
+    }
+
+    println!("\n{}", "Press [Enter] to continue...".dimmed());
+
+    let _ = term.read_line();
+}
+
 #[async_recursion]
 async fn run_toolproof_steps(
     file_directory: &String,
@@ -119,6 +152,8 @@ async fn run_toolproof_steps(
                 state,
                 platforms,
             } => {
+                debugger_pause(&marked_base_step, civ);
+
                 let target_path = PathBuf::from(file_directory)
                     .join(other_file)
                     .normalize()
@@ -167,6 +202,8 @@ async fn run_toolproof_steps(
                 state,
                 platforms,
             } => {
+                debugger_pause(&marked_base_step, civ);
+
                 let Some((reference_segments, defined_macro)) =
                     civ.universe.macros.get_key_value(step_macro)
                 else {
@@ -229,6 +266,8 @@ async fn run_toolproof_steps(
                 platforms,
                 ..
             } => {
+                debugger_pause(&marked_base_step, civ);
+
                 let Some((reference_segments, instruction)) =
                     civ.universe.instructions.get_key_value(step)
                 else {
@@ -274,6 +313,8 @@ async fn run_toolproof_steps(
                 platforms,
                 ..
             } => {
+                debugger_pause(&marked_base_step, civ);
+
                 let Some((reference_ret, retrieval_step)) =
                     civ.universe.retrievers.get_key_value(retrieval)
                 else {
@@ -354,6 +395,8 @@ async fn run_toolproof_steps(
                 state,
                 platforms,
             } => {
+                debugger_pause(&marked_base_step, civ);
+
                 let Some((reference_ret, retrieval_step)) =
                     civ.universe.retrievers.get_key_value(snapshot)
                 else {
@@ -405,6 +448,8 @@ async fn run_toolproof_steps(
                 state,
                 platforms,
             } => {
+                debugger_pause(&marked_base_step, civ);
+
                 let Some((reference_ret, retrieval_step)) =
                     civ.universe.retrievers.get_key_value(extract)
                 else {
