@@ -24,7 +24,7 @@ json_dotpath = "1.1.0"
 tempfile = "3.20.0"
 similar-string = "1.4.3"
 console = "0.16"
-dialoguer = { version = "0.11", features = ["fuzzy-select"] }
+dialoguer = { version = "0.12", features = ["fuzzy-select"] }
 async-trait = "0.1.88"
 pagebrowse = "0.1.1"
 chromiumoxide = "0.7"
