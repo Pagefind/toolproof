@@ -14,7 +14,7 @@ async-recursion = "1.1.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.9"
 serde_json = "1"
-nondestructive = "0.0.20"
+nondestructive = "0.0.26"
 similar = { version = "2.7.0", features = ["inline"] }
 inventory = "0.3.20"
 portpicker = "0.1"
