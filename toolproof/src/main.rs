@@ -206,6 +206,38 @@ fn closest_strings<'o>(target: &String, options: &'o Vec<String>) -> Vec<(&'o St
     scores
 }
 
+async fn acquire_or_shutdown(
+    semaphore: &Arc<tokio::sync::Semaphore>,
+    shutdown_rx: &tokio::sync::watch::Receiver<bool>,
+) -> Result<tokio::sync::OwnedSemaphorePermit, ()> {
+    let mut shutdown_check = shutdown_rx.clone();
+    tokio::select! {
+        Ok(_) = shutdown_check.wait_for(|v| *v) => {
+            eprintln!("\n{}", "Interrupted, shutting down...".yellow().bold());
+            Err(())
+        }
+        permit = semaphore.clone().acquire_owned() => Ok(permit.unwrap()),
+    }
+}
+
+async fn join_or_shutdown<T>(
+    hands: Vec<tokio::task::JoinHandle<T>>,
+    shutdown_rx: &tokio::sync::watch::Receiver<bool>,
+) -> Result<Vec<Result<T, tokio::task::JoinError>>, ()> {
+    let abort_handles: Vec<_> = hands.iter().map(|h| h.abort_handle()).collect();
+    let mut shutdown_check = shutdown_rx.clone();
+    tokio::select! {
+        Ok(_) = shutdown_check.wait_for(|v| *v) => {
+            for h in &abort_handles {
+                h.abort();
+            }
+            eprintln!("\n{}", "Interrupted, shutting down...".yellow().bold());
+            Err(())
+        }
+        results = join_all(hands) => Ok(results),
+    }
+}
+
 async fn main_inner() -> Result<(), ()> {
     let ctx = configure();
 
@@ -760,13 +792,14 @@ async fn main_inner() -> Result<(), ()> {
                 .filter(|v| v.r#type == ToolproofFileType::Test)
                 .cloned()
             {
-                let sem = semaphore.clone();
+                let permit = acquire_or_shutdown(&semaphore, &shutdown_rx).await?;
                 let uni = Arc::clone(&universe);
                 hands.push(tokio::spawn(async move {
-                    let _permit = sem.acquire_owned().await.unwrap();
                     let start = Instant::now();
                     let res = run_toolproof_experiment(&mut test, Arc::clone(&uni)).await;
                     let holding_err = handle_res(uni, (&test, res), start);
+
+                    drop(permit);
 
                     holding_err.map_err(|e| (test, e))
                 }));
@@ -804,13 +837,14 @@ async fn main_inner() -> Result<(), ()> {
                 })
                 .map(|(_, v)| v.clone())
             {
-                let sem = semaphore.clone();
+                let permit = acquire_or_shutdown(&semaphore, &shutdown_rx).await?;
                 let uni = Arc::clone(&universe);
                 hands.push(tokio::spawn(async move {
-                    let _permit = sem.acquire_owned().await.unwrap();
                     let start = Instant::now();
                     let res = run_toolproof_experiment(&mut test, Arc::clone(&uni)).await;
                     let holding_err = handle_res(uni, (&test, res), start);
+
+                    drop(permit);
 
                     holding_err.map_err(|e| (test, e))
                 }));
@@ -818,28 +852,15 @@ async fn main_inner() -> Result<(), ()> {
         }
     }
 
-    let abort_handles: Vec<_> = hands.iter().map(|h| h.abort_handle()).collect();
-
-    let mut shutdown_check = shutdown_rx.clone();
-    let mut results = tokio::select! {
-        Ok(_) = shutdown_check.wait_for(|v| *v) => {
-            for h in &abort_handles {
-                h.abort();
-            }
-            eprintln!("\n{}", "Interrupted, shutting down...".yellow().bold());
-            return Err(());
-        }
-        results = join_all(hands) => {
-            results
-                .into_iter()
-                .map(|outer_err| match outer_err {
-                    Ok(Ok(success)) => Ok(success),
-                    Ok(Err(e)) => Err(e),
-                    Err(e) => panic!("Failed to await all tests: {e}"),
-                })
-                .collect::<Vec<_>>()
-        }
-    };
+    let mut results = join_or_shutdown(hands, &shutdown_rx)
+        .await?
+        .into_iter()
+        .map(|outer_err| match outer_err {
+            Ok(Ok(success)) => Ok(success),
+            Ok(Err(e)) => Err(e),
+            Err(e) => panic!("Failed to await all tests: {e}"),
+        })
+        .collect::<Vec<_>>();
 
     let retry_count = universe.ctx.params.retry_count;
     let mut concurrency = universe.ctx.params.concurrency;
@@ -868,14 +889,15 @@ async fn main_inner() -> Result<(), ()> {
 
         for (result_index, result) in results.iter().enumerate().filter(|(_, r)| r.is_err()) {
             if let Err((test, _)) = result {
-                let sem = semaphore.clone();
+                let permit = acquire_or_shutdown(&semaphore, &shutdown_rx).await?;
                 let uni = Arc::clone(&universe);
                 let mut new_test = test.clone();
                 hands.push(tokio::spawn(async move {
-                    let _permit = sem.acquire_owned().await.unwrap();
                     let start = Instant::now();
                     let res = run_toolproof_experiment(&mut new_test, Arc::clone(&uni)).await;
                     let holding_err = handle_res(uni, (&new_test, res), start);
+
+                    drop(permit);
 
                     (
                         result_index,
@@ -891,22 +913,9 @@ async fn main_inner() -> Result<(), ()> {
             }
         }
 
-        let abort_handles: Vec<_> = hands.iter().map(|h| h.abort_handle()).collect();
-
-        let mut shutdown_check = shutdown_rx.clone();
-        let retry_join = tokio::select! {
-            Ok(_) = shutdown_check.wait_for(|v| *v) => {
-                for h in &abort_handles {
-                    h.abort();
-                }
-                eprintln!("\n{}", "Interrupted, shutting down...".yellow().bold());
-                return Err(());
-            }
-            results = join_all(hands) => results,
-        };
-
         for (result_index, retried_result) in
-            retry_join
+            join_or_shutdown(hands, &shutdown_rx)
+                .await?
                 .into_iter()
                 .filter_map(|outer_err| match outer_err {
                     Ok((i, Ok(success))) => Some((i, success)),
