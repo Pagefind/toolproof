@@ -206,6 +206,42 @@ fn closest_strings<'o>(target: &String, options: &'o Vec<String>) -> Vec<(&'o St
     scores
 }
 
+async fn acquire_or_shutdown<T>(
+    semaphore: &Arc<tokio::sync::Semaphore>,
+    shutdown_rx: &tokio::sync::watch::Receiver<bool>,
+    in_flight: &[tokio::task::JoinHandle<T>],
+) -> Result<tokio::sync::OwnedSemaphorePermit, ()> {
+    let mut shutdown_check = shutdown_rx.clone();
+    tokio::select! {
+        Ok(_) = shutdown_check.wait_for(|v| *v) => {
+            for h in in_flight {
+                h.abort();
+            }
+            eprintln!("\n{}", "Interrupted, shutting down...".yellow().bold());
+            Err(())
+        }
+        permit = semaphore.clone().acquire_owned() => Ok(permit.unwrap()),
+    }
+}
+
+async fn join_or_shutdown<T>(
+    hands: Vec<tokio::task::JoinHandle<T>>,
+    shutdown_rx: &tokio::sync::watch::Receiver<bool>,
+) -> Result<Vec<Result<T, tokio::task::JoinError>>, ()> {
+    let abort_handles: Vec<_> = hands.iter().map(|h| h.abort_handle()).collect();
+    let mut shutdown_check = shutdown_rx.clone();
+    tokio::select! {
+        Ok(_) = shutdown_check.wait_for(|v| *v) => {
+            for h in &abort_handles {
+                h.abort();
+            }
+            eprintln!("\n{}", "Interrupted, shutting down...".yellow().bold());
+            Err(())
+        }
+        results = join_all(hands) => Ok(results),
+    }
+}
+
 async fn main_inner() -> Result<(), ()> {
     let ctx = configure();
 
@@ -429,7 +465,11 @@ async fn main_inner() -> Result<(), ()> {
 
     // Validate that path-based filtering found at least one test
     if let RunMode::Path(ref filter_path) = run_mode {
-        let test_root = universe.ctx.params.root.as_ref()
+        let test_root = universe
+            .ctx
+            .params
+            .root
+            .as_ref()
             .cloned()
             .unwrap_or_else(|| universe.ctx.working_directory.clone());
 
@@ -445,7 +485,8 @@ async fn main_inner() -> Result<(), ()> {
                 let absolute_test_path = test_root.join(test_path).normalize();
                 let absolute_test_path_str = absolute_test_path.to_string_lossy();
 
-                absolute_test_path_str.as_ref() == filter_path || absolute_test_path_str.starts_with(filter_path.as_str())
+                absolute_test_path_str.as_ref() == filter_path
+                    || absolute_test_path_str.starts_with(filter_path.as_str())
             })
             .count();
 
@@ -740,6 +781,12 @@ async fn main_inner() -> Result<(), ()> {
         }
     };
 
+    let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
+    tokio::spawn(async move {
+        tokio::signal::ctrl_c().await.ok();
+        let _ = shutdown_tx.send(true);
+    });
+
     let semaphore = Arc::new(tokio::sync::Semaphore::new(universe.ctx.params.concurrency));
 
     let mut hands = vec![];
@@ -754,7 +801,7 @@ async fn main_inner() -> Result<(), ()> {
                 .filter(|v| v.r#type == ToolproofFileType::Test)
                 .cloned()
             {
-                let permit = semaphore.clone().acquire_owned().await.unwrap();
+                let permit = acquire_or_shutdown(&semaphore, &shutdown_rx, &hands).await?;
                 let uni = Arc::clone(&universe);
                 hands.push(tokio::spawn(async move {
                     let start = Instant::now();
@@ -779,7 +826,11 @@ async fn main_inner() -> Result<(), ()> {
             }));
         }
         RunMode::Path(ref filter_path) => {
-            let test_root = universe.ctx.params.root.as_ref()
+            let test_root = universe
+                .ctx
+                .params
+                .root
+                .as_ref()
                 .cloned()
                 .unwrap_or_else(|| universe.ctx.working_directory.clone());
 
@@ -795,11 +846,12 @@ async fn main_inner() -> Result<(), ()> {
                     let absolute_test_path = test_root.join(test_path).normalize();
                     let absolute_test_path_str = absolute_test_path.to_string_lossy();
 
-                    absolute_test_path_str.as_ref() == filter_path || absolute_test_path_str.starts_with(filter_path.as_str())
+                    absolute_test_path_str.as_ref() == filter_path
+                        || absolute_test_path_str.starts_with(filter_path.as_str())
                 })
                 .map(|(_, v)| v.clone())
             {
-                let permit = semaphore.clone().acquire_owned().await.unwrap();
+                let permit = acquire_or_shutdown(&semaphore, &shutdown_rx, &hands).await?;
                 let uni = Arc::clone(&universe);
                 hands.push(tokio::spawn(async move {
                     let start = Instant::now();
@@ -814,8 +866,8 @@ async fn main_inner() -> Result<(), ()> {
         }
     }
 
-    let mut results = join_all(hands)
-        .await
+    let mut results = join_or_shutdown(hands, &shutdown_rx)
+        .await?
         .into_iter()
         .map(|outer_err| match outer_err {
             Ok(Ok(success)) => Ok(success),
@@ -851,7 +903,7 @@ async fn main_inner() -> Result<(), ()> {
 
         for (result_index, result) in results.iter().enumerate().filter(|(_, r)| r.is_err()) {
             if let Err((test, _)) = result {
-                let permit = semaphore.clone().acquire_owned().await.unwrap();
+                let permit = acquire_or_shutdown(&semaphore, &shutdown_rx, &hands).await?;
                 let uni = Arc::clone(&universe);
                 let mut new_test = test.clone();
                 hands.push(tokio::spawn(async move {
@@ -875,14 +927,13 @@ async fn main_inner() -> Result<(), ()> {
             }
         }
 
-        for (result_index, retried_result) in
-            join_all(hands)
-                .await
-                .into_iter()
-                .filter_map(|outer_err| match outer_err {
-                    Ok((i, Ok(success))) => Some((i, success)),
-                    _ => None,
-                })
+        for (result_index, retried_result) in join_or_shutdown(hands, &shutdown_rx)
+            .await?
+            .into_iter()
+            .filter_map(|outer_err| match outer_err {
+                Ok((i, Ok(success))) => Some((i, success)),
+                _ => None,
+            })
         {
             results[result_index] = Ok(retried_result);
         }
@@ -998,9 +1049,9 @@ async fn main_inner() -> Result<(), ()> {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> std::process::ExitCode {
     match main_inner().await {
-        Ok(_) => std::process::exit(0),
-        Err(_) => std::process::exit(1),
+        Ok(_) => std::process::ExitCode::SUCCESS,
+        Err(_) => std::process::ExitCode::FAILURE,
     }
 }
