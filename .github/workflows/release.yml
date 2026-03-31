@@ -66,9 +66,9 @@ jobs:
             target
           key: ${{ runner.os }}-${{ matrix.rust }}
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: '24'
 
       # From https://github.com/Emoun/duplicate/blob/master/.github/workflows/rust.yml
       - name: Get Version
@@ -220,9 +220,9 @@ jobs:
     steps:
       - name: Clone
         uses: actions/checkout@v2
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: '24'
       - uses: actions/download-artifact@v4
         with:
           name: release-${{ matrix.target }}
@@ -286,9 +286,9 @@ jobs:
           fetch-depth: 0 # Full fetch
           token: ${{ steps.get_workflow_token.outputs.token }}
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Get Version
