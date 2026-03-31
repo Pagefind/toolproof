@@ -11,238 +11,6 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  publish-crate:
-    name: Publish Crate
-    runs-on: ubuntu-24.04
-    needs: publish-github-release
-    steps:
-      - name: Clone
-        uses: actions/checkout@v3
-      - name: Cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            ~/.rustup
-            target
-          key: ${{ runner.os }}-stable-min165
-
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-          default: true
-          components: rustfmt, clippy
-
-      - name: Get Version
-        run: echo GIT_VERSION="$(git describe --tags | sed 's/^v\(.*\)$/\1/')" >> $GITHUB_ENV
-      - name: Prepare Git
-        run: |
-          git config user.email "github@github.com"
-          git config user.name "Github Actions"
-          git checkout -b main
-          # Use throw-away branch so we don't push the changes to origin
-          git checkout -b deploy_branch
-      - name: Prepare Crates
-        run: |
-          # Update cargo version,
-          node ./.backstage/version.cjs
-          git add ./toolproof/Cargo.toml
-          # Commit changes so cargo doesn't complain about dirty repo
-          git commit -m "Deploy changes."
-
-      - name: Build
-        run: cargo build --release --verbose
-      - name: Publish
-        working-directory: ./toolproof
-        run: cargo publish --allow-dirty
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-
-  publish-npm-package:
-    name: Publish NPM package
-    runs-on: ubuntu-24.04
-    needs: publish-binary-npm-packages
-    steps:
-      - name: Clone
-        uses: actions/checkout@v2
-      - uses: actions/download-artifact@v4
-        with:
-          path: wrappers/node/checksums
-          pattern: release-checksums-*
-          merge-multiple: true
-
-      - name: Get Version
-        run: echo GIT_VERSION="$(git describe --tags | sed 's/^v\(.*\)$/\1/')" >> $GITHUB_ENV
-      - name: Get Tag
-        run: echo GIT_TAG="$(node ./.backstage/get_tag.cjs)" >> $GITHUB_ENV
-
-      - name: Version optional dependencies
-        run: |
-          node ./.backstage/version_main_package.cjs
-
-      - name: Prepare package
-        working-directory: ./wrappers/node
-        run: |
-          npm version $GIT_VERSION
-      - name: Publish
-        working-directory: ./wrappers/node
-        run: npm publish --tag $GIT_TAG
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-  publish-binary-npm-packages:
-    name: Publish Binary NPM packages
-    runs-on: ubuntu-24.04
-    needs: publish-github-release
-    strategy:
-      matrix:
-        include:
-          - target: x86_64-pc-windows-msvc
-            package: windows-x64
-            os: win32
-            cpu: x64
-          - target: x86_64-unknown-linux-musl
-            package: linux-x64
-            os: linux
-            cpu: x64
-          - target: aarch64-unknown-linux-musl
-            package: linux-arm64
-            os: linux
-            cpu: arm64
-          - target: x86_64-apple-darwin
-            package: darwin-x64
-            os: darwin
-            cpu: x64
-          - target: aarch64-apple-darwin
-            package: darwin-arm64
-            os: darwin
-            cpu: arm64
-    steps:
-      - name: Clone
-        uses: actions/checkout@v2
-      - uses: actions/download-artifact@v4
-        with:
-          name: release-${{ matrix.target }}
-          path: build-artifacts
-
-      - name: Get Version
-        run: echo GIT_VERSION="$(git describe --tags | sed 's/^v\(.*\)$/\1/')" >> $GITHUB_ENV
-      - name: Get Tag
-        run: echo GIT_TAG="$(node ./.backstage/get_tag.cjs)" >> $GITHUB_ENV
-
-      - name: Create Package
-        run: |
-          mkdir -p ${{ matrix.package }}/bin/
-          cd ${{ matrix.package }}
-          node ../.backstage/create_package.cjs ${{ matrix.os }} ${{ matrix.cpu }}
-          cp ../wrappers/node/.npmrc .
-
-      - name: Extract Binary
-        working-directory: build-artifacts
-        run: |
-          tar xzf toolproof-v$GIT_VERSION-${{ matrix.target }}.tar.gz
-          rm *.tar.gz
-          mv * ../${{ matrix.package }}/bin/
-
-      - name: Prepare package
-        working-directory: ${{ matrix.package }}
-        run: |
-          npm version $GIT_VERSION
-      - name: Publish
-        working-directory: ${{ matrix.package }}
-        run: npm publish --tag $GIT_TAG --access public
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-  publish-github-release:
-    name: Publish to GitHub
-    runs-on: ubuntu-24.04
-    needs: test-and-build
-    defaults:
-      run:
-        working-directory: ./
-    steps:
-      - name: Get Token
-        id: get_workflow_token
-        uses: peter-murray/workflow-application-token-action@v2
-        with:
-          application_id: ${{ secrets.PF_BOT_ID }}
-          application_private_key: ${{ secrets.PF_BOT_PEM }}
-      - name: Clone
-        uses: actions/checkout@v2
-        with:
-          token: ${{ steps.get_workflow_token.outputs.token }}
-      - name: Swap to main
-        uses: actions/checkout@v2
-        with:
-          ref: main
-          fetch-depth: 0 # Full fetch
-          token: ${{ steps.get_workflow_token.outputs.token }}
-
-      - name: Get Version
-        run: echo GIT_VERSION="$(git describe --tags | sed 's/^v\(.*\)$/\1/')" >> $GITHUB_ENV
-      - name: Get Tag
-        run: echo GIT_TAG="$(node ./.backstage/get_tag.cjs)" >> $GITHUB_ENV
-
-      - uses: actions/download-artifact@v4
-        with:
-          path: build-artifacts
-          pattern: release-*
-          merge-multiple: true
-
-      - name: Build CHANGELOG
-        if: env.GIT_TAG == 'latest'
-        run: |
-          node ./.backstage/changelog.cjs write
-          echo CHANGELOG=\"$(base64 -w 0 -i CHANGELOG.md)\" >> $GITHUB_ENV
-          echo SHA=\"$( git rev-parse main:CHANGELOG.md )\" >> $GITHUB_ENV
-      - name: Build CHANGELOG
-        if: env.GIT_TAG != 'latest'
-        run: |
-          echo "## Prerelease" > RELEASE.md
-          node ./.backstage/changelog.cjs write || true
-
-      - name: Commit new CHANGELOG
-        uses: octokit/request-action@v2.x
-        if: env.GIT_TAG == 'latest'
-        id: push_changes
-        with:
-          route: PUT /repos/{owner}/{repo}/contents/CHANGELOG.md
-          owner: pagefind
-          repo: toolproof
-          branch: main
-          message: Changelog for ${{ env.GIT_VERSION }}
-          sha: ${{ env.SHA }}
-          content: ${{ env.CHANGELOG }}
-        env:
-          GITHUB_TOKEN: ${{ steps.get_workflow_token.outputs.token }}
-      - name: Release documentation branch
-        uses: octokit/request-action@v2.x
-        if: env.GIT_TAG == 'latest'
-        id: merge_docs
-        with:
-          route: POST /repos/{owner}/{repo}/merges
-          owner: pagefind
-          repo: toolproof
-          base: production-docs
-          head: main
-          commit_message: Release documentation for ${{ env.GIT_VERSION }}
-        env:
-          GITHUB_TOKEN: ${{ steps.get_workflow_token.outputs.token }}
-
-      - name: Release
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/') && env.GIT_TAG == 'latest'
-        with:
-          body_path: RELEASE.md
-          files: |
-            build-artifacts/*
-        env:
-          GITHUB_TOKEN: ${{ steps.get_workflow_token.outputs.token }}
-
   test-and-build:
     name: Test and Build
     runs-on: ${{matrix.os}}
@@ -300,7 +68,7 @@ jobs:
 
       - uses: actions/setup-node@v3
         with:
-          node-version: 16
+          node-version: 22
 
       # From https://github.com/Emoun/duplicate/blob/master/.github/workflows/rust.yml
       - name: Get Version
@@ -421,3 +189,241 @@ jobs:
           name: release-checksums-${{ matrix.target }}
           path: |
             ${{ env.CHECKSUM_PATH }}
+
+  prepare-packages:
+    name: Prepare Binary NPM Packages
+    runs-on: ubuntu-24.04
+    needs: test-and-build
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-pc-windows-msvc
+            package: windows-x64
+            os: win32
+            cpu: x64
+          - target: x86_64-unknown-linux-musl
+            package: linux-x64
+            os: linux
+            cpu: x64
+          - target: aarch64-unknown-linux-musl
+            package: linux-arm64
+            os: linux
+            cpu: arm64
+          - target: x86_64-apple-darwin
+            package: darwin-x64
+            os: darwin
+            cpu: x64
+          - target: aarch64-apple-darwin
+            package: darwin-arm64
+            os: darwin
+            cpu: arm64
+    steps:
+      - name: Clone
+        uses: actions/checkout@v2
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-${{ matrix.target }}
+          path: build-artifacts
+      - name: Get Version
+        run: echo GIT_VERSION="$(git describe --tags | sed 's/^v\(.*\)$/\1/')" >> $GITHUB_ENV
+      - name: Get Tag
+        run: echo GIT_TAG="$(node ./.backstage/get_tag.cjs)" >> $GITHUB_ENV
+
+      - name: Create Package
+        run: |
+          mkdir -p ${{ matrix.package }}/bin/
+          cd ${{ matrix.package }}
+          node ../.backstage/create_package.cjs ${{ matrix.os }} ${{ matrix.cpu }}
+
+      - name: Extract Binary
+        working-directory: build-artifacts
+        run: |
+          tar xzf toolproof-v$GIT_VERSION-${{ matrix.target }}.tar.gz
+          rm *.tar.gz
+          mv * ../${{ matrix.package }}/bin/
+
+      - name: Prepare package
+        working-directory: ${{ matrix.package }}
+        run: |
+          npm version $GIT_VERSION
+
+      - name: Upload prepared package
+        uses: actions/upload-artifact@v4
+        with:
+          name: prepared-${{ matrix.package }}
+          path: ${{ matrix.package }}
+
+  publish:
+    name: Publish
+    runs-on: ubuntu-24.04
+    environment: production
+    needs: prepare-packages
+    permissions:
+      id-token: write
+      contents: write
+    defaults:
+      run:
+        working-directory: ./
+    steps:
+      # --- GitHub Release ---
+      - name: Get Token
+        id: get_workflow_token
+        uses: peter-murray/workflow-application-token-action@v2
+        with:
+          application_id: ${{ secrets.PF_BOT_ID }}
+          application_private_key: ${{ secrets.PF_BOT_PEM }}
+      - name: Clone
+        uses: actions/checkout@v2
+        with:
+          token: ${{ steps.get_workflow_token.outputs.token }}
+      - name: Swap to main
+        uses: actions/checkout@v2
+        with:
+          ref: main
+          fetch-depth: 0 # Full fetch
+          token: ${{ steps.get_workflow_token.outputs.token }}
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Get Version
+        run: echo GIT_VERSION="$(git describe --tags | sed 's/^v\(.*\)$/\1/')" >> $GITHUB_ENV
+      - name: Get Tag
+        run: echo GIT_TAG="$(node ./.backstage/get_tag.cjs)" >> $GITHUB_ENV
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: build-artifacts
+          pattern: release-*
+          merge-multiple: true
+
+      - name: Build CHANGELOG
+        if: env.GIT_TAG == 'latest'
+        run: |
+          node ./.backstage/changelog.cjs write
+          echo CHANGELOG=\"$(base64 -w 0 -i CHANGELOG.md)\" >> $GITHUB_ENV
+          echo SHA=\"$( git rev-parse main:CHANGELOG.md )\" >> $GITHUB_ENV
+      - name: Build CHANGELOG
+        if: env.GIT_TAG != 'latest'
+        run: |
+          echo "## Prerelease" > RELEASE.md
+          node ./.backstage/changelog.cjs write || true
+
+      - name: Commit new CHANGELOG
+        uses: octokit/request-action@v2.x
+        if: env.GIT_TAG == 'latest'
+        id: push_changes
+        with:
+          route: PUT /repos/{owner}/{repo}/contents/CHANGELOG.md
+          owner: pagefind
+          repo: toolproof
+          branch: main
+          message: Changelog for ${{ env.GIT_VERSION }}
+          sha: ${{ env.SHA }}
+          content: ${{ env.CHANGELOG }}
+        env:
+          GITHUB_TOKEN: ${{ steps.get_workflow_token.outputs.token }}
+      - name: Release documentation branch
+        uses: octokit/request-action@v2.x
+        if: env.GIT_TAG == 'latest'
+        id: merge_docs
+        with:
+          route: POST /repos/{owner}/{repo}/merges
+          owner: pagefind
+          repo: toolproof
+          base: production-docs
+          head: main
+          commit_message: Release documentation for ${{ env.GIT_VERSION }}
+        env:
+          GITHUB_TOKEN: ${{ steps.get_workflow_token.outputs.token }}
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/') && env.GIT_TAG == 'latest'
+        with:
+          body_path: RELEASE.md
+          files: |
+            build-artifacts/*
+        env:
+          GITHUB_TOKEN: ${{ steps.get_workflow_token.outputs.token }}
+
+      # --- Binary NPM Packages ---
+      - name: Download prepared packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: prepared-*
+
+      # --- Main NPM Package ---
+      - uses: actions/download-artifact@v4
+        with:
+          path: wrappers/node/checksums
+          pattern: release-checksums-*
+          merge-multiple: true
+
+      - name: Version optional dependencies
+        run: |
+          node ./.backstage/version_main_package.cjs
+
+      - name: Prepare main NPM package
+        working-directory: ./wrappers/node
+        run: |
+          npm version $GIT_VERSION
+
+      - name: Publish binary NPM packages
+        run: |
+          for pkg in windows-x64 linux-x64 linux-arm64 darwin-x64 darwin-arm64; do
+            echo "Publishing $pkg..."
+            cd prepared-$pkg
+            npm publish --provenance --tag $GIT_TAG --access public
+            cd ..
+          done
+
+      - name: Publish main NPM package
+        working-directory: ./wrappers/node
+        run: npm publish --provenance --tag $GIT_TAG
+
+      # --- Crate ---
+      - name: Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.rustup
+            target
+          key: ${{ runner.os }}-stable-min165
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          default: true
+          components: rustfmt, clippy
+
+      - name: Prepare Git
+        run: |
+          git config user.email "github@github.com"
+          git config user.name "Github Actions"
+          # Use throw-away branch so we don't push the changes to origin
+          git checkout -b deploy_branch
+      - name: Prepare Crates
+        run: |
+          # Update cargo version,
+          node ./.backstage/version.cjs
+          git add ./toolproof/Cargo.toml
+          # Commit changes so cargo doesn't complain about dirty repo
+          git commit -m "Deploy changes."
+
+      - name: Build
+        run: cargo build --release --verbose
+      - name: Publish Crate
+        working-directory: ./toolproof
+        run: cargo publish --allow-dirty
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
