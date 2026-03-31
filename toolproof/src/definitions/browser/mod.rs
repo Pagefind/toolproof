@@ -113,9 +113,8 @@ impl BrowserTester {
                     browser: Arc::new(browser),
                     browser_timeout: params.browser_timeout,
                     event_thread: Arc::new(tokio::task::spawn(async move {
-                        loop {
-                            let _ = handler.next().await.unwrap();
-                        }
+                        while handler.next().await.is_some() {}
+                        Ok::<(), std::io::Error>(())
                     })),
                 }
             }

@@ -9,6 +9,10 @@
 
 ## Unreleased
 
+## v0.17.0 (March 31, 2026)
+
+* Added graceful shutdown on Ctrl+C, cancelling in-progress tests
+
 ## v0.16.0 (October 5, 2025)
 
 * Added a `--path` argument that runs all tests under a directory
