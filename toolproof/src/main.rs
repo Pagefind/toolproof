@@ -206,13 +206,17 @@ fn closest_strings<'o>(target: &String, options: &'o Vec<String>) -> Vec<(&'o St
     scores
 }
 
-async fn acquire_or_shutdown(
+async fn acquire_or_shutdown<T>(
     semaphore: &Arc<tokio::sync::Semaphore>,
     shutdown_rx: &tokio::sync::watch::Receiver<bool>,
+    in_flight: &[tokio::task::JoinHandle<T>],
 ) -> Result<tokio::sync::OwnedSemaphorePermit, ()> {
     let mut shutdown_check = shutdown_rx.clone();
     tokio::select! {
         Ok(_) = shutdown_check.wait_for(|v| *v) => {
+            for h in in_flight {
+                h.abort();
+            }
             eprintln!("\n{}", "Interrupted, shutting down...".yellow().bold());
             Err(())
         }
@@ -792,7 +796,7 @@ async fn main_inner() -> Result<(), ()> {
                 .filter(|v| v.r#type == ToolproofFileType::Test)
                 .cloned()
             {
-                let permit = acquire_or_shutdown(&semaphore, &shutdown_rx).await?;
+                let permit = acquire_or_shutdown(&semaphore, &shutdown_rx, &hands).await?;
                 let uni = Arc::clone(&universe);
                 hands.push(tokio::spawn(async move {
                     let start = Instant::now();
@@ -837,7 +841,7 @@ async fn main_inner() -> Result<(), ()> {
                 })
                 .map(|(_, v)| v.clone())
             {
-                let permit = acquire_or_shutdown(&semaphore, &shutdown_rx).await?;
+                let permit = acquire_or_shutdown(&semaphore, &shutdown_rx, &hands).await?;
                 let uni = Arc::clone(&universe);
                 hands.push(tokio::spawn(async move {
                     let start = Instant::now();
@@ -889,7 +893,7 @@ async fn main_inner() -> Result<(), ()> {
 
         for (result_index, result) in results.iter().enumerate().filter(|(_, r)| r.is_err()) {
             if let Err((test, _)) = result {
-                let permit = acquire_or_shutdown(&semaphore, &shutdown_rx).await?;
+                let permit = acquire_or_shutdown(&semaphore, &shutdown_rx, &hands).await?;
                 let uni = Arc::clone(&universe);
                 let mut new_test = test.clone();
                 hands.push(tokio::spawn(async move {
