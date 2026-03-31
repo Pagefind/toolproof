@@ -465,7 +465,11 @@ async fn main_inner() -> Result<(), ()> {
 
     // Validate that path-based filtering found at least one test
     if let RunMode::Path(ref filter_path) = run_mode {
-        let test_root = universe.ctx.params.root.as_ref()
+        let test_root = universe
+            .ctx
+            .params
+            .root
+            .as_ref()
             .cloned()
             .unwrap_or_else(|| universe.ctx.working_directory.clone());
 
@@ -481,7 +485,8 @@ async fn main_inner() -> Result<(), ()> {
                 let absolute_test_path = test_root.join(test_path).normalize();
                 let absolute_test_path_str = absolute_test_path.to_string_lossy();
 
-                absolute_test_path_str.as_ref() == filter_path || absolute_test_path_str.starts_with(filter_path.as_str())
+                absolute_test_path_str.as_ref() == filter_path
+                    || absolute_test_path_str.starts_with(filter_path.as_str())
             })
             .count();
 
@@ -821,7 +826,11 @@ async fn main_inner() -> Result<(), ()> {
             }));
         }
         RunMode::Path(ref filter_path) => {
-            let test_root = universe.ctx.params.root.as_ref()
+            let test_root = universe
+                .ctx
+                .params
+                .root
+                .as_ref()
                 .cloned()
                 .unwrap_or_else(|| universe.ctx.working_directory.clone());
 
@@ -837,7 +846,8 @@ async fn main_inner() -> Result<(), ()> {
                     let absolute_test_path = test_root.join(test_path).normalize();
                     let absolute_test_path_str = absolute_test_path.to_string_lossy();
 
-                    absolute_test_path_str.as_ref() == filter_path || absolute_test_path_str.starts_with(filter_path.as_str())
+                    absolute_test_path_str.as_ref() == filter_path
+                        || absolute_test_path_str.starts_with(filter_path.as_str())
                 })
                 .map(|(_, v)| v.clone())
             {
@@ -917,14 +927,13 @@ async fn main_inner() -> Result<(), ()> {
             }
         }
 
-        for (result_index, retried_result) in
-            join_or_shutdown(hands, &shutdown_rx)
-                .await?
-                .into_iter()
-                .filter_map(|outer_err| match outer_err {
-                    Ok((i, Ok(success))) => Some((i, success)),
-                    _ => None,
-                })
+        for (result_index, retried_result) in join_or_shutdown(hands, &shutdown_rx)
+            .await?
+            .into_iter()
+            .filter_map(|outer_err| match outer_err {
+                Ok((i, Ok(success))) => Some((i, success)),
+                _ => None,
+            })
         {
             results[result_index] = Ok(retried_result);
         }
