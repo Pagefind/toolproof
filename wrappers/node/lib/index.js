@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+const fs = require("fs");
 const os = require("os");
 const { spawnSync } = require("child_process");
 
@@ -38,10 +39,30 @@ try {
       `${execname} npm wrapper: Running the executable at ${binaryPath}`,
     );
   }
+  if (process.platform !== "win32") {
+    try {
+      const currentMode = fs.statSync(binaryPath).mode & 0o777;
+      const executeMode = currentMode | 0o111;
+      if (executeMode !== currentMode) {
+        fs.chmodSync(binaryPath, executeMode);
+      }
+    } catch (e) {
+      if (verbose) {
+        console.warn(
+          `${execname} npm wrapper: Failed to set executable permissions on ${binaryPath}: ${e.message || e}`,
+        );
+      }
+    }
+  }
   const processResult = spawnSync(binaryPath, args, {
     windowsHide: true,
     stdio: [process.stdin, process.stdout, process.stderr],
   });
+  if (processResult.error) {
+    console.error(`Failed to run ${execname}: ${processResult.error}`);
+    console.error(`Binary path: ${binaryPath}`);
+    process.exit(1);
+  }
   if (verbose) {
     console.log(
       `${execname} npm wrapper: Process exited with status ${processResult.status}`,
