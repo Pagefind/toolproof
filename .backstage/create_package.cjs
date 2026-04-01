@@ -19,7 +19,7 @@ fs.writeFileSync(
     license: "MIT",
     repository: {
       type: "git",
-      url: "git+https://github.com/pagefind/toolproof.git",
+      url: "git+https://github.com/Pagefind/toolproof.git",
     },
     author: "Pagefind",
     os: [os],
