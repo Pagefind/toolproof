@@ -7,7 +7,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pagefind/toolproof.git"
+    "url": "git+https://github.com/Pagefind/toolproof.git"
   },
   "author": "Pagefind",
   "license": "MIT",
@@ -27,7 +27,7 @@
     "test"
   ],
   "bugs": {
-    "url": "https://github.com/pagefind/toolproof/issues"
+    "url": "https://github.com/Pagefind/toolproof/issues"
   },
-  "homepage": "https://github.com/pagefind/toolproof#readme"
+  "homepage": "https://github.com/Pagefind/toolproof#readme"
 }
