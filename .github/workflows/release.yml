@@ -382,7 +382,12 @@ jobs:
       - name: Restore binary permissions
         run: |
           for pkg in linux-x64 linux-arm64 darwin-x64 darwin-arm64; do
-            chmod +x prepared-$pkg/bin/* 2>/dev/null || true
+            dir="prepared-$pkg/bin"
+            if [ -d "$dir" ]; then
+              chmod +x "$dir"/*
+            else
+              echo "Warning: Directory $dir not found, skipping permission restoration." >&2
+            fi
           done
 
       - name: Publish binary NPM packages

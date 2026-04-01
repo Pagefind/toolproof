@@ -41,8 +41,18 @@ try {
   }
   if (process.platform !== "win32") {
     try {
-      fs.chmodSync(binaryPath, 0o755);
-    } catch (e) {}
+      const currentMode = fs.statSync(binaryPath).mode & 0o777;
+      const executeMode = currentMode | 0o111;
+      if (executeMode !== currentMode) {
+        fs.chmodSync(binaryPath, executeMode);
+      }
+    } catch (e) {
+      if (verbose) {
+        console.warn(
+          `${execname} npm wrapper: Failed to set executable permissions on ${binaryPath}: ${e.message || e}`,
+        );
+      }
+    }
   }
   const processResult = spawnSync(binaryPath, args, {
     windowsHide: true,
