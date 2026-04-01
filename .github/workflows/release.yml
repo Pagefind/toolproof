@@ -249,12 +249,13 @@ jobs:
         working-directory: ${{ matrix.package }}
         run: |
           npm version $GIT_VERSION --no-git-tag-version
+          npm pack
 
       - name: Upload prepared package
         uses: actions/upload-artifact@v4
         with:
           name: prepared-${{ matrix.package }}
-          path: ${{ matrix.package }}
+          path: ${{ matrix.package }}/*.tgz
 
   publish:
     name: Publish
@@ -386,9 +387,7 @@ jobs:
             if npm view "@toolproof/$pkg@$GIT_VERSION" version >/dev/null 2>&1; then
               echo "  Already published, skipping."
             else
-              cd prepared-$pkg
-              npm publish --provenance --tag $GIT_TAG --access public
-              cd ..
+              npm publish prepared-$pkg/*.tgz --provenance --tag $GIT_TAG --access public
             fi
           done
 
