@@ -66,9 +66,9 @@ jobs:
             target
           key: ${{ runner.os }}-${{ matrix.rust }}
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: '24'
 
       # From https://github.com/Emoun/duplicate/blob/master/.github/workflows/rust.yml
       - name: Get Version
@@ -220,9 +220,9 @@ jobs:
     steps:
       - name: Clone
         uses: actions/checkout@v2
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: '24'
       - uses: actions/download-artifact@v4
         with:
           name: release-${{ matrix.target }}
@@ -248,7 +248,7 @@ jobs:
       - name: Prepare package
         working-directory: ${{ matrix.package }}
         run: |
-          npm version $GIT_VERSION
+          npm version $GIT_VERSION --no-git-tag-version
 
       - name: Upload prepared package
         uses: actions/upload-artifact@v4
@@ -286,9 +286,9 @@ jobs:
           fetch-depth: 0 # Full fetch
           token: ${{ steps.get_workflow_token.outputs.token }}
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Get Version
@@ -318,6 +318,7 @@ jobs:
         uses: octokit/request-action@v2.x
         if: env.GIT_TAG == 'latest'
         id: push_changes
+        continue-on-error: true
         with:
           route: PUT /repos/{owner}/{repo}/contents/CHANGELOG.md
           owner: pagefind
@@ -372,20 +373,29 @@ jobs:
       - name: Prepare main NPM package
         working-directory: ./wrappers/node
         run: |
-          npm version $GIT_VERSION
+          npm version $GIT_VERSION --no-git-tag-version
 
       - name: Publish binary NPM packages
         run: |
           for pkg in windows-x64 linux-x64 linux-arm64 darwin-x64 darwin-arm64; do
-            echo "Publishing $pkg..."
-            cd prepared-$pkg
-            npm publish --provenance --tag $GIT_TAG --access public
-            cd ..
+            echo "Publishing @toolproof/$pkg..."
+            if npm view "@toolproof/$pkg@$GIT_VERSION" version >/dev/null 2>&1; then
+              echo "  Already published, skipping."
+            else
+              cd prepared-$pkg
+              npm publish --provenance --tag $GIT_TAG --access public
+              cd ..
+            fi
           done
 
       - name: Publish main NPM package
         working-directory: ./wrappers/node
-        run: npm publish --provenance --tag $GIT_TAG
+        run: |
+          if npm view "toolproof@$GIT_VERSION" version >/dev/null 2>&1; then
+            echo "Already published, skipping."
+          else
+            npm publish --provenance --tag $GIT_TAG
+          fi
 
       # --- Crate ---
       - name: Cache
@@ -411,7 +421,7 @@ jobs:
           git config user.email "github@github.com"
           git config user.name "Github Actions"
           # Use throw-away branch so we don't push the changes to origin
-          git checkout -b deploy_branch
+          git checkout -B deploy_branch
       - name: Prepare Crates
         run: |
           # Update cargo version,
@@ -424,6 +434,11 @@ jobs:
         run: cargo build --release --verbose
       - name: Publish Crate
         working-directory: ./toolproof
-        run: cargo publish --allow-dirty
+        run: |
+          if curl -sf -A "toolproof-release/1.0 (github.com/pagefind/toolproof)" "https://crates.io/api/v1/crates/toolproof/$GIT_VERSION" | grep -q '"num"'; then
+            echo "Crate already published, skipping."
+          else
+            cargo publish --allow-dirty
+          fi
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
