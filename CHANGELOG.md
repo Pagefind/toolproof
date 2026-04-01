@@ -9,6 +9,8 @@
 
 ## Unreleased
 
+* Fixed binary permissions when executing toolproof through npm
+
 ## v0.17.0 (March 31, 2026)
 
 * Added graceful shutdown on Ctrl+C, cancelling in-progress tests
