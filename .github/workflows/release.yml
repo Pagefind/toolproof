@@ -379,6 +379,12 @@ jobs:
         run: |
           npm version $GIT_VERSION --no-git-tag-version
 
+      - name: Restore binary permissions
+        run: |
+          for pkg in linux-x64 linux-arm64 darwin-x64 darwin-arm64; do
+            chmod +x prepared-$pkg/bin/* 2>/dev/null || true
+          done
+
       - name: Publish binary NPM packages
         run: |
           for pkg in windows-x64 linux-x64 linux-arm64 darwin-x64 darwin-arm64; do
