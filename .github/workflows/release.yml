@@ -387,7 +387,7 @@ jobs:
             if npm view "@toolproof/$pkg@$GIT_VERSION" version >/dev/null 2>&1; then
               echo "  Already published, skipping."
             else
-              npm publish prepared-$pkg/*.tgz --provenance --tag $GIT_TAG --access public
+              npm publish ./prepared-$pkg/*.tgz --provenance --tag $GIT_TAG --access public
             fi
           done
 
