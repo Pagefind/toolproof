@@ -14,6 +14,8 @@ mod host_dir {
     use super::*;
 
     async fn host(dir: &String, civ: &mut Civilization<'_>) -> Result<(), ToolproofStepError> {
+        civ.stop_servers().await;
+
         let mut attempts = 0;
         let mut running = false;
         while !running && attempts < 5 {
