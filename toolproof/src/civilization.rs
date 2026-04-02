@@ -37,13 +37,8 @@ pub struct Civilization<'u> {
 }
 
 impl<'u> Civilization<'u> {
-    pub async fn shutdown(self) {
-        for handle in &self.handles {
-            handle.stop(false).await;
-        }
-        for thread in &self.threads {
-            thread.abort();
-        }
+    pub async fn shutdown(mut self) {
+        self.stop_servers().await;
 
         if let Some(BrowserWindow::Chrome(window)) = self.window {
             window
@@ -55,6 +50,16 @@ impl<'u> Civilization<'u> {
 }
 
 impl<'u> Civilization<'u> {
+    pub async fn stop_servers(&mut self) {
+        for handle in self.handles.drain(..) {
+            handle.stop(false).await;
+        }
+        for thread in self.threads.drain(..) {
+            thread.abort();
+        }
+        self.purge_port();
+    }
+
     pub fn ensure_port(&mut self) -> u16 {
         if self.assigned_server_port.is_none() {
             self.assigned_server_port = pick_unused_port();
