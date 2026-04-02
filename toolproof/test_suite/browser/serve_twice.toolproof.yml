@@ -1,0 +1,25 @@
+name: Browser can serve a directory twice in one test
+
+steps:
+  - step: I have a "my_test.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Inner serve twice test
+
+      steps:
+        - I have a "public/index.html" file with the content "<p>First</p>"
+        - I serve the directory "public"
+        - In my browser, I load "/"
+        - step: In my browser, I evaluate {js}
+          js: |-
+            toolproof.assert_eq(document.querySelector("p").innerText, "First");
+        - I have a "public2/index.html" file with the content "<p>Second</p>"
+        - I serve the directory "public2"
+        - In my browser, I load "/"
+        - step: In my browser, I evaluate {js}
+          js: |-
+            toolproof.assert_eq(document.querySelector("p").innerText, "Second");
+  - I run "%toolproof_path% --timeout 60"
+  - step: "stdout should contain 'Total passing tests: 1'"
+  - step: "stdout should contain 'Failing tests: 0'"
+  - step: "stdout should contain 'All tests passed'"
+  - stderr should be empty

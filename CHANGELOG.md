@@ -9,6 +9,10 @@
 
 ## Unreleased
 
+## v0.17.2 (April 2, 2026)
+
+* Ensure only one hosting server exists at a time within a test context. A server hosted in a previous step will now be closed when starting another.
+
 ## v0.17.1 (April 1, 2026)
 
 * Fixed binary permissions when executing toolproof through npm
