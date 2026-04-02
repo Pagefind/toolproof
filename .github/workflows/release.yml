@@ -435,6 +435,9 @@ jobs:
 
       - name: Build
         run: cargo build --release --verbose
+      - name: Authenticate with crates.io
+        id: crates-io-auth
+        uses: rust-lang/crates-io-auth-action@v1
       - name: Publish Crate
         working-directory: ./toolproof
         run: |
@@ -444,4 +447,4 @@ jobs:
             cargo publish --allow-dirty
           fi
         env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ steps.crates-io-auth.outputs.token }}

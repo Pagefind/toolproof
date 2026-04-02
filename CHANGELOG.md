@@ -9,6 +9,8 @@
 
 ## Unreleased
 
+* No changes (CI release improvements)
+
 ## v0.17.1 (April 1, 2026)
 
 * Fixed binary permissions when executing toolproof through npm
