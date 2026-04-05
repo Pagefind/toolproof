@@ -36,6 +36,11 @@ jobs:
             rust: beta
             target: x86_64-pc-windows-msvc
             cross: false
+          - build: windows-arm64
+            os: windows-11-arm
+            rust: beta
+            target: aarch64-pc-windows-msvc
+            cross: false
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -71,8 +76,6 @@ jobs:
       - name: Test Lib
         working-directory: ./toolproof
         run: cargo test
-
-      - uses: browser-actions/setup-chrome@v1
 
       - name: Test CLI
         working-directory: ./toolproof

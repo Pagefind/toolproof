@@ -16,7 +16,8 @@
     "@toolproof/linux-arm64": "0.0.0",
     "@toolproof/darwin-x64": "0.0.0",
     "@toolproof/darwin-arm64": "0.0.0",
-    "@toolproof/windows-x64": "0.0.0"
+    "@toolproof/windows-x64": "0.0.0",
+    "@toolproof/windows-arm64": "0.0.0"
   },
   "keywords": [
     "toolproof",
