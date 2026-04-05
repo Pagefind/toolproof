@@ -77,8 +77,6 @@ jobs:
         working-directory: ./toolproof
         run: cargo test
 
-      - uses: browser-actions/setup-chrome@v1
-
       - name: Test CLI
         working-directory: ./toolproof
         # toolproof tests itself when run
