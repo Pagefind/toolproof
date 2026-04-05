@@ -9,6 +9,8 @@
 
 ## Unreleased
 
+## v0.18.0 (April 5, 2026)
+
 * Add support for ARM64 Windows
 
 ## v0.17.2 (April 2, 2026)
