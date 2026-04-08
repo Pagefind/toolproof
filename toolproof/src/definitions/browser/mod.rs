@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use chromiumoxide::cdp::browser_protocol::page::CaptureScreenshotParams;
+use chromiumoxide::cdp::browser_protocol::browser::BrowserContextId;
 use chromiumoxide::cdp::browser_protocol::target::{
     CreateBrowserContextParams, CreateTargetParams,
 };
@@ -145,7 +146,7 @@ impl BrowserTester {
                 browser_timeout,
                 ..
             } => {
-                let context = browser
+                let context_id = browser
                     .create_browser_context(CreateBrowserContextParams {
                         dispose_on_detach: Some(true),
                         proxy_server: None,
@@ -160,7 +161,7 @@ impl BrowserTester {
                         for_tab: None,
                         width: None,
                         height: None,
-                        browser_context_id: Some(context),
+                        browser_context_id: Some(context_id.clone()),
                         enable_begin_frame_control: None,
                         new_window: None,
                         background: None,
@@ -170,21 +171,29 @@ impl BrowserTester {
                 page.evaluate_on_new_document(init_script(*browser_timeout))
                     .await
                     .expect("Could not set initialization js");
-                BrowserWindow::Chrome(page)
+                BrowserWindow::Chrome {
+                    page,
+                    context_id,
+                    browser: Arc::clone(browser),
+                }
             }
         }
     }
 }
 
 pub enum BrowserWindow {
-    Chrome(chromiumoxide::Page),
+    Chrome {
+        page: chromiumoxide::Page,
+        context_id: BrowserContextId,
+        browser: Arc<Browser>,
+    },
     Pagebrowse(PagebrowserWindow),
 }
 
 impl BrowserWindow {
     async fn navigate(&self, url: String, wait_for_load: bool) -> Result<(), ToolproofStepError> {
         match self {
-            BrowserWindow::Chrome(page) => {
+            BrowserWindow::Chrome { page, .. } => {
                 // TODO: This is implicitly always wait_for_load: true
                 page.goto(url)
                     .await
@@ -203,7 +212,7 @@ impl BrowserWindow {
         script: String,
     ) -> Result<Option<serde_json::Value>, ToolproofStepError> {
         match self {
-            BrowserWindow::Chrome(page) => {
+            BrowserWindow::Chrome { page, .. } => {
                 let res = page
                     .evaluate_function(format!("async function() {{{}}}", harnessed(script)))
                     .await
@@ -220,7 +229,7 @@ impl BrowserWindow {
 
     async fn screenshot_page(&self, filepath: PathBuf) -> Result<(), ToolproofStepError> {
         match self {
-            BrowserWindow::Chrome(page) => {
+            BrowserWindow::Chrome { page, .. } => {
                 let image_format = browser_specific::chrome_image_format(&filepath)?;
 
                 page.save_screenshot(
@@ -253,7 +262,7 @@ impl BrowserWindow {
         timeout_secs: u64,
     ) -> Result<(), ToolproofStepError> {
         match self {
-            BrowserWindow::Chrome(page) => {
+            BrowserWindow::Chrome { page, .. } => {
                 let image_format = browser_specific::chrome_image_format(&filepath)?;
 
                 let element = browser_specific::wait_for_chrome_element_selector(
@@ -284,7 +293,7 @@ impl BrowserWindow {
         timeout_secs: u64,
     ) -> Result<(), ToolproofStepError> {
         match self {
-            BrowserWindow::Chrome(page) => {
+            BrowserWindow::Chrome { page, .. } => {
                 let text = text.to_lowercase();
                 let selector_text = escape_xpath_string(&text);
                 let el_xpath = |el: &str| {
@@ -437,7 +446,7 @@ impl BrowserWindow {
         timeout_secs: u64,
     ) -> Result<(), ToolproofStepError> {
         match self {
-            BrowserWindow::Chrome(page) => {
+            BrowserWindow::Chrome { page, .. } => {
                 loop {
                     let element = browser_specific::wait_for_chrome_element_selector(
                         page,
@@ -523,7 +532,7 @@ impl BrowserWindow {
         timeout_secs: u64,
     ) -> Result<(), ToolproofStepError> {
         match self {
-            BrowserWindow::Chrome(page) => {
+            BrowserWindow::Chrome { page, .. } => {
                 loop {
                     let element = browser_specific::wait_for_chrome_element_selector(
                         page,
@@ -563,7 +572,7 @@ impl BrowserWindow {
 
     async fn press_key(&self, key: &str, timeout_secs: u64) -> Result<(), ToolproofStepError> {
         match self {
-            BrowserWindow::Chrome(page) => {
+            BrowserWindow::Chrome { page, .. } => {
                 let dom =
                     browser_specific::wait_for_chrome_element_selector(page, "body", timeout_secs)
                         .await?;
