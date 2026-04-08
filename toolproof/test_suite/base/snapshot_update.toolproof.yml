@@ -1,0 +1,39 @@
+name: Snapshots can be auto-updated with --update flag
+
+steps:
+  - step: I have a "my_test.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Inner snapshot test with wrong content
+
+      steps:
+        - I run 'echo "Aenean eu leo quam"'
+        - snapshot: stdout
+          snapshot_content: |-
+            ╎bad
+  - I run "%toolproof_path% --porcelain -u"
+  - snapshot: stdout
+    snapshot_content: |-
+      ╎
+      ╎Running tests
+      ╎
+      ╎✓ Inner snapshot test with wrong content  (snapshot updated)
+      ╎
+      ╎Finished running tests
+      ╎
+      ╎Total passing tests: 1
+      ╎Passed after retry: 0
+      ╎Failing tests: 0
+      ╎Skipped tests: 0
+      ╎
+      ╎All tests passed
+  - step: I have a "expected_updated.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Inner snapshot test with wrong content
+
+      steps:
+        - I run 'echo "Aenean eu leo quam"'
+        - snapshot: stdout
+          snapshot_content: |-
+            ╎Aenean eu leo quam
+  - I run "diff my_test.toolproof.yml expected_updated.toolproof.yml"
+  - stderr should be empty

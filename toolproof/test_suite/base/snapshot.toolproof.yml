@@ -56,7 +56,7 @@ steps:
       ╎
       ╎--- END SNAPSHOT CHANGE ---
       ╎
-      ╎Run in interactive mode (-i) to accept new snapshots
+      ╎Run in interactive mode (-i) or with --update (-u) to accept new snapshots
       ╎
       ╎
       ╎Finished running tests
