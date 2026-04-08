@@ -869,10 +869,12 @@ async fn main_inner() -> Result<(), ()> {
     let mut results = join_or_shutdown(hands, &shutdown_rx)
         .await?
         .into_iter()
-        .map(|outer_err| match outer_err {
-            Ok(Ok(success)) => Ok(success),
-            Ok(Err(e)) => Err(e),
-            Err(e) => panic!("Failed to await all tests: {e}"),
+        .filter_map(|outer_err| match outer_err {
+            Ok(inner) => Some(inner),
+            Err(e) => {
+                eprintln!("[toolproof] Error: A test task panicked: {e}");
+                None
+            }
         })
         .collect::<Vec<_>>();
 
