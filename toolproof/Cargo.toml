@@ -27,7 +27,7 @@ console = "0.16"
 dialoguer = { version = "0.12", features = ["fuzzy-select"] }
 async-trait = "0.1.88"
 pagebrowse = "0.1.1"
-chromiumoxide = "0.7"
+chromiumoxide = "0.9"
 clap = { version = "4", features = ["cargo"] }
 schematic = { version = "0.18.12", features = ["yaml"] }
 strip-ansi-escapes = "0.2.1"
