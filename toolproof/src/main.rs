@@ -558,6 +558,20 @@ async fn main_inner() -> Result<(), ()> {
                     );
                     println!("{}", msg.green());
                     Ok(success)
+                } else if universe.ctx.params.update {
+                    if let Err(e) = std::fs::write(&file.file_path, &output_doc) {
+                        eprintln!("Unable to write updated snapshot to disk.\n{e}");
+                        return Err(HoldingError::TestFailure);
+                    }
+                    let msg = format!(
+                        "{}{}{}  {}",
+                        "✓ ".green(),
+                        dur.green().dimmed(),
+                        &file.name.green(),
+                        "(snapshot updated)".cyan()
+                    );
+                    println!("{}", msg);
+                    Ok(ToolproofTestSuccess::Passed { attempts: 0 })
                 } else {
                     println!(
                         "{}",
@@ -577,7 +591,7 @@ async fn main_inner() -> Result<(), ()> {
                         );
                         println!(
                             "\n{}",
-                            "Run in interactive mode (-i) to accept new snapshots\n"
+                            "Run in interactive mode (-i) or with --update (-u) to accept new snapshots\n"
                                 .bright_red()
                                 .bold()
                         );
@@ -790,19 +804,23 @@ async fn main_inner() -> Result<(), ()> {
     let semaphore = Arc::new(tokio::sync::Semaphore::new(universe.ctx.params.concurrency));
 
     let mut hands = vec![];
+    // Tracks the `universe.tests` key behind each spawned task,
+    // in the same order as `hands`.
+    let mut spawned_keys: Vec<String> = vec![];
 
     println!("\n{}\n", "Running tests".bold());
 
     match run_mode {
         RunMode::All => {
-            for mut test in universe
+            for (key, mut test) in universe
                 .tests
-                .values()
-                .filter(|v| v.r#type == ToolproofFileType::Test)
-                .cloned()
+                .iter()
+                .filter(|(_, v)| v.r#type == ToolproofFileType::Test)
+                .map(|(k, v)| (k.clone(), v.clone()))
             {
                 let permit = acquire_or_shutdown(&semaphore, &shutdown_rx, &hands).await?;
                 let uni = Arc::clone(&universe);
+                spawned_keys.push(key);
                 hands.push(tokio::spawn(async move {
                     let start = Instant::now();
                     let res = run_toolproof_experiment(&mut test, Arc::clone(&uni)).await;
@@ -817,6 +835,7 @@ async fn main_inner() -> Result<(), ()> {
         RunMode::One(t) => {
             let mut test = universe.tests.get(&t).cloned().unwrap();
             let uni = Arc::clone(&universe);
+            spawned_keys.push(t.clone());
             hands.push(tokio::spawn(async move {
                 let start = Instant::now();
                 let res = run_toolproof_experiment(&mut test, Arc::clone(&uni)).await;
@@ -834,7 +853,7 @@ async fn main_inner() -> Result<(), ()> {
                 .cloned()
                 .unwrap_or_else(|| universe.ctx.working_directory.clone());
 
-            for mut test in universe
+            for (key, mut test) in universe
                 .tests
                 .iter()
                 .filter(|(test_path, v)| {
@@ -849,10 +868,11 @@ async fn main_inner() -> Result<(), ()> {
                     absolute_test_path_str.as_ref() == filter_path
                         || absolute_test_path_str.starts_with(filter_path.as_str())
                 })
-                .map(|(_, v)| v.clone())
+                .map(|(k, v)| (k.clone(), v.clone()))
             {
                 let permit = acquire_or_shutdown(&semaphore, &shutdown_rx, &hands).await?;
                 let uni = Arc::clone(&universe);
+                spawned_keys.push(key);
                 hands.push(tokio::spawn(async move {
                     let start = Instant::now();
                     let res = run_toolproof_experiment(&mut test, Arc::clone(&uni)).await;
@@ -869,11 +889,18 @@ async fn main_inner() -> Result<(), ()> {
     let mut results = join_or_shutdown(hands, &shutdown_rx)
         .await?
         .into_iter()
-        .filter_map(|outer_err| match outer_err {
-            Ok(inner) => Some(inner),
+        .zip(spawned_keys)
+        .map(|(outer_err, key)| match outer_err {
+            Ok(inner) => inner,
             Err(e) => {
                 eprintln!("[toolproof] Error: A test task panicked: {e}");
-                None
+                // Count the panic as a failure (and let it be retried)
+                let test = universe
+                    .tests
+                    .get(&key)
+                    .cloned()
+                    .expect("spawned key must exist in universe.tests");
+                Err((test, HoldingError::TestFailure))
             }
         })
         .collect::<Vec<_>>();

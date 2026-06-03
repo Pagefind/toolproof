@@ -68,14 +68,12 @@ async fn try_launch_browser(mut max: usize, visible: bool) -> (Browser, chromium
     let mut launch = Err(CdpError::NotFound);
     while launch.is_err() && max > 0 {
         max -= 1;
-        let headless_mode = if visible {
-            chromiumoxide::browser::HeadlessMode::False
-        } else {
-            chromiumoxide::browser::HeadlessMode::New
-        };
+        let mut builder = BrowserConfig::builder();
+        if visible {
+            builder = builder.with_head();
+        }
         launch = Browser::launch(
-            BrowserConfig::builder()
-                .headless_mode(headless_mode)
+            builder
                 .user_data_dir(tempdir().expect("testing on a system with a temp dir"))
                 .viewport(Some(Viewport {
                     width: 1600,
@@ -159,12 +157,16 @@ impl BrowserTester {
                     .new_page(CreateTargetParams {
                         url: "about:blank".to_string(),
                         for_tab: None,
+                        left: None,
+                        top: None,
                         width: None,
                         height: None,
+                        window_state: None,
                         browser_context_id: Some(context_id.clone()),
                         enable_begin_frame_control: None,
                         new_window: None,
                         background: None,
+                        hidden: None,
                     })
                     .await
                     .unwrap();

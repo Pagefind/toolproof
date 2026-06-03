@@ -107,6 +107,12 @@ fn get_cli_matches() -> ArgMatches {
         )
         .arg(
             arg!(
+                -u --update ... "Automatically accept all snapshot changes"
+            )
+            .action(clap::ArgAction::SetTrue),
+        )
+        .arg(
+            arg!(
                 -s --skiphooks ... "Skip running any hooks (e.g. before_all)"
             )
             .action(clap::ArgAction::SetTrue),
@@ -202,6 +208,10 @@ pub struct ToolproofParams {
 
     /// Run all tests when in interactive mode
     pub all: bool,
+
+    /// Automatically accept all snapshot changes
+    #[setting(env = "TOOLPROOF_UPDATE")]
+    pub update: bool,
 
     /// Run a specific test
     #[setting(env = "TOOLPROOF_RUN_NAME")]
@@ -303,6 +313,10 @@ impl ToolproofParams {
 
         if cli_matches.get_flag("all") {
             self.all = true;
+        }
+
+        if cli_matches.get_flag("update") {
+            self.update = true;
         }
 
         if cli_matches.get_flag("skiphooks") {
