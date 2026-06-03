@@ -558,6 +558,20 @@ async fn main_inner() -> Result<(), ()> {
                     );
                     println!("{}", msg.green());
                     Ok(success)
+                } else if universe.ctx.params.update {
+                    if let Err(e) = std::fs::write(&file.file_path, &output_doc) {
+                        eprintln!("Unable to write updated snapshot to disk.\n{e}");
+                        return Err(HoldingError::TestFailure);
+                    }
+                    let msg = format!(
+                        "{}{}{}  {}",
+                        "✓ ".green(),
+                        dur.green().dimmed(),
+                        &file.name.green(),
+                        "(snapshot updated)".cyan()
+                    );
+                    println!("{}", msg);
+                    Ok(ToolproofTestSuccess::Passed { attempts: 0 })
                 } else {
                     println!(
                         "{}",
@@ -577,7 +591,7 @@ async fn main_inner() -> Result<(), ()> {
                         );
                         println!(
                             "\n{}",
-                            "Run in interactive mode (-i) to accept new snapshots\n"
+                            "Run in interactive mode (-i) or with --update (-u) to accept new snapshots\n"
                                 .bright_red()
                                 .bold()
                         );
