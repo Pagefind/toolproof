@@ -18,3 +18,16 @@ updates:
     ignore:
       - dependency-name: "@toolproof/*"
       - dependency-name: "@types/node"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    open-pull-requests-limit: 5
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    groups:
+      actions-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
