@@ -9,6 +9,12 @@
 
 ## Unreleased
 
+## v0.19.0 (June 7, 2026)
+
+* Fixed a browser context leak that could crash Chrome and cause errant test failures. Chrome windows now shut down more reliably.
+* Test tasks that panic are now counted as failures.
+* Added a `--update` (`-u`) flag that automatically accepts all snapshot changes. It can also be set via the `TOOLPROOF_UPDATE` environment variable.
+
 ## v0.18.0 (April 5, 2026)
 
 * Add support for ARM64 Windows

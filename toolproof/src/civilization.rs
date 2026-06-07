@@ -40,11 +40,27 @@ impl<'u> Civilization<'u> {
     pub async fn shutdown(mut self) {
         self.stop_servers().await;
 
-        if let Some(BrowserWindow::Chrome(window)) = self.window {
-            window
-                .close()
-                .await
-                .expect("Failed to close browser window");
+        if let Some(BrowserWindow::Chrome {
+            page,
+            context_id,
+            browser,
+        }) = self.window
+        {
+            match tokio::time::timeout(Duration::from_secs(5), async {
+                if let Err(e) = page.close().await {
+                    eprintln!("[toolproof] Warning: Failed to close browser window: {e}");
+                }
+                if let Err(e) = browser.dispose_browser_context(context_id).await {
+                    eprintln!("[toolproof] Warning: Failed to dispose browser context: {e}");
+                }
+            })
+            .await
+            {
+                Ok(()) => {}
+                Err(_) => {
+                    eprintln!("[toolproof] Warning: Timed out cleaning up browser window");
+                }
+            }
         }
     }
 }
