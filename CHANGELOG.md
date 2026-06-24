@@ -9,6 +9,8 @@
 
 ## Unreleased
 
+* The hosting server now serves hidden files (dotfiles).
+
 ## v0.19.0 (June 7, 2026)
 
 * Fixed a browser context leak that could crash Chrome and cause errant test failures. Chrome windows now shut down more reliably.

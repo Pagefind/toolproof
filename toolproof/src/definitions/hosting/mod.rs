@@ -22,7 +22,11 @@ mod host_dir {
             let port = civ.ensure_port();
             let dir = civ.tmp_file_path(&dir);
             match HttpServer::new(move || {
-                App::new().service(actix_files::Files::new("/", &dir).index_file("index.html"))
+                App::new().service(
+                    actix_files::Files::new("/", &dir)
+                        .index_file("index.html")
+                        .use_hidden_files(),
+                )
             })
             .bind(("127.0.0.1", port))
             {
