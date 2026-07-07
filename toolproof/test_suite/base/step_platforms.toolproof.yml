@@ -26,6 +26,7 @@ steps:
       ╎Total passing tests: 1
       ╎Passed after retry: 0
       ╎Failing tests: 0
+      ╎Changed snapshots: 0
       ╎Skipped tests: 0
       ╎
       ╎All tests passed
