@@ -9,6 +9,8 @@
 
 ## Unreleased
 
+## v0.20.0 (July 7, 2026)
+
 * Added a summary for changed snapshots and failing tests in test outputs
 
 ## v0.19.1 (June 24, 2026)
