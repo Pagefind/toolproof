@@ -9,6 +9,8 @@
 
 ## Unreleased
 
+* Added a summary for changed snapshots and failing tests in test outputs
+
 ## v0.19.1 (June 24, 2026)
 
 * The hosting server now serves hidden files (dotfiles).
