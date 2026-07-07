@@ -23,6 +23,7 @@ steps:
       ╎Total passing tests: 1
       ╎Passed after retry: 0
       ╎Failing tests: 0
+      ╎Changed snapshots: 0
       ╎Skipped tests: 0
       ╎
       ╎All tests passed
@@ -63,7 +64,14 @@ steps:
       ╎
       ╎Total passing tests: 0
       ╎Passed after retry: 0
-      ╎Failing tests: 1
+      ╎Failing tests: 0
+      ╎Changed snapshots: 1
       ╎Skipped tests: 0
+      ╎
+      ╎Changed snapshots:
+      ╎  ⚠ Inner failing snapshot test
+      ╎
+      ╎Review the changed snapshots. If a change is correct, accept it with --update (-u):
+      ╎  toolproof --name 'Inner failing snapshot test' --update
       ╎
       ╎Some tests failed

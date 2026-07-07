@@ -975,7 +975,7 @@ async fn main_inner() -> Result<(), ()> {
             _ => None,
         })
         .collect::<Vec<_>>();
-    let mut resolved_errors = 0;
+    let mut resolved: Vec<String> = vec![];
 
     println!("\n{}\n", "Finished running tests".bold());
 
@@ -1008,7 +1008,7 @@ async fn main_inner() -> Result<(), ()> {
                     HoldingError::TestFailure => {}
                     HoldingError::SnapFailure { out } => {
                         if confirm_snapshot(&term, &file, &out).is_ok_and(|v| v) {
-                            resolved_errors += 1;
+                            resolved.push(file.file_path.clone());
 
                             if let Err(e) = tokio::fs::write(&file.file_path, out).await {
                                 eprintln!("Unable to write updates snapshot to disk.\n{e}");
@@ -1033,12 +1033,31 @@ async fn main_inner() -> Result<(), ()> {
         )
     };
 
-    let failing = results.iter().filter(|r| r.is_err()).count() - resolved_errors;
+    let hard_failures = results
+        .iter()
+        .filter_map(|r| match r {
+            Err((file, HoldingError::TestFailure)) => Some(file),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    let changed_snapshots = results
+        .iter()
+        .filter_map(|r| match r {
+            Err((file, HoldingError::SnapFailure { .. }))
+                if !resolved.contains(&file.file_path) =>
+            {
+                Some(file)
+            }
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+
+    let failing = hard_failures.len() + changed_snapshots.len();
     let passing = results
         .iter()
         .filter(|r| matches!(r, Ok(ToolproofTestSuccess::Passed { .. })))
         .count()
-        + resolved_errors;
+        + resolved.len();
     let skipped = results
         .iter()
         .filter(|r| matches!(r, Ok(ToolproofTestSuccess::Skipped)))
@@ -1054,12 +1073,41 @@ async fn main_inner() -> Result<(), ()> {
     };
 
     println!(
-        "{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}",
         style(&format!("Total passing tests: {}", passing)).cyan(),
         style(&format!("Passed after retry: {}", retried_passed)).cyan(),
-        style(&format!("Failing tests: {}", failing)).cyan(),
+        style(&format!("Failing tests: {}", hard_failures.len())).cyan(),
+        style(&format!("Changed snapshots: {}", changed_snapshots.len())).cyan(),
         style(&format!("Skipped tests: {}", skipped)).cyan(),
     );
+
+    let shell_quote = |s: &str| format!("'{}'", s.replace('\'', "'\\''"));
+
+    if !hard_failures.is_empty() {
+        println!("\n{}", "Failing tests:".red().bold());
+        for file in &hard_failures {
+            println!("  {} {}", "✘".red().bold(), file.name.red());
+        }
+        println!("\n{}", "Rerun the failing tests with:".bold());
+        for file in &hard_failures {
+            println!("  toolproof --name {}", shell_quote(&file.name));
+        }
+    }
+
+    if !changed_snapshots.is_empty() {
+        println!("\n{}", "Changed snapshots:".yellow().bold());
+        for file in &changed_snapshots {
+            println!("  {} {}", "⚠".yellow().bold(), file.name.yellow());
+        }
+        println!(
+            "\n{}",
+            "Review the changed snapshots. If a change is correct, accept it with --update (-u):"
+                .bold()
+        );
+        for file in &changed_snapshots {
+            println!("  toolproof --name {} --update", shell_quote(&file.name));
+        }
+    }
 
     if failing > 0 {
         println!(

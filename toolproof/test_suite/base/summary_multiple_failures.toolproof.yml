@@ -1,0 +1,72 @@
+name: Summary lists every failing test
+
+steps:
+  - step: I have a "alpha.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Alpha failing test
+
+      steps:
+        - I run 'echo "hello"'
+        - stdout should contain "goodbye"
+  - step: I have a "beta.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Beta failing test
+
+      steps:
+        - I run 'echo "hello"'
+        - stdout should contain "farewell"
+  - I run "%toolproof_path% --porcelain -c 1" and expect it to fail
+  - snapshot: stdout
+    snapshot_content: |-
+      ╎
+      ╎Running tests
+      ╎
+      ╎✘ Alpha failing test
+      ╎--- STEPS ---
+      ╎✓ I run 'echo "hello"'
+      ╎✘ stdout should contain "goodbye"
+      ╎--- ERROR ---
+      ╎Error in step "stdout should contain "goodbye"":
+      ╎--
+      ╎Failed assertion: The value
+      ╎---
+      ╎"hello\n"
+      ╎---
+      ╎does not contain
+      ╎---
+      ╎"goodbye"
+      ╎---
+      ╎✘ Beta failing test
+      ╎--- STEPS ---
+      ╎✓ I run 'echo "hello"'
+      ╎✘ stdout should contain "farewell"
+      ╎--- ERROR ---
+      ╎Error in step "stdout should contain "farewell"":
+      ╎--
+      ╎Failed assertion: The value
+      ╎---
+      ╎"hello\n"
+      ╎---
+      ╎does not contain
+      ╎---
+      ╎"farewell"
+      ╎---
+      ╎
+      ╎Finished running tests
+      ╎
+      ╎Total passing tests: 0
+      ╎Passed after retry: 0
+      ╎Failing tests: 2
+      ╎Changed snapshots: 0
+      ╎Skipped tests: 0
+      ╎
+      ╎Failing tests:
+      ╎  ✘ Alpha failing test
+      ╎  ✘ Beta failing test
+      ╎
+      ╎Rerun the failing tests with:
+      ╎  toolproof --name 'Alpha failing test'
+      ╎  toolproof --name 'Beta failing test'
+      ╎
+      ╎Some tests failed
+  - stderr should be empty

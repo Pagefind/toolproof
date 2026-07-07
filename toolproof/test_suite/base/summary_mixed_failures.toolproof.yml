@@ -1,0 +1,80 @@
+name: Summary separates snapshot changes from failures
+
+steps:
+  - step: I have a "normal.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Normal failing test
+
+      steps:
+        - I run 'echo "hello"'
+        - stdout should contain "goodbye"
+  - step: I have a "snap.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Snapshot changing test
+
+      steps:
+        - I run 'echo "actual output"'
+        - snapshot: stdout
+          snapshot_content: |-
+            ╎stale output
+  - I run "%toolproof_path% --porcelain -c 1" and expect it to fail
+  - snapshot: stdout
+    snapshot_content: |-
+      ╎
+      ╎Running tests
+      ╎
+      ╎✘ Normal failing test
+      ╎--- STEPS ---
+      ╎✓ I run 'echo "hello"'
+      ╎✘ stdout should contain "goodbye"
+      ╎--- ERROR ---
+      ╎Error in step "stdout should contain "goodbye"":
+      ╎--
+      ╎Failed assertion: The value
+      ╎---
+      ╎"hello\n"
+      ╎---
+      ╎does not contain
+      ╎---
+      ╎"goodbye"
+      ╎---
+      ╎⚠ Snapshot changing test
+      ╎--- SNAPSHOT CHANGED ---
+      ╎
+      ╎    0     0 │ name: Snapshot changing test
+      ╎    1     1 │ 
+      ╎    2     2 │ steps:
+      ╎    3     3 │   - I run 'echo "actual output"'
+      ╎    4     4 │   - snapshot: stdout
+      ╎    5     5 │     snapshot_content: |-
+      ╎    6       │-      ╎stale output
+      ╎          6 │+      ╎actual output
+      ╎
+      ╎
+      ╎--- END SNAPSHOT CHANGE ---
+      ╎
+      ╎Run in interactive mode (-i) or with --update (-u) to accept new snapshots
+      ╎
+      ╎
+      ╎Finished running tests
+      ╎
+      ╎Total passing tests: 0
+      ╎Passed after retry: 0
+      ╎Failing tests: 1
+      ╎Changed snapshots: 1
+      ╎Skipped tests: 0
+      ╎
+      ╎Failing tests:
+      ╎  ✘ Normal failing test
+      ╎
+      ╎Rerun the failing tests with:
+      ╎  toolproof --name 'Normal failing test'
+      ╎
+      ╎Changed snapshots:
+      ╎  ⚠ Snapshot changing test
+      ╎
+      ╎Review the changed snapshots. If a change is correct, accept it with --update (-u):
+      ╎  toolproof --name 'Snapshot changing test' --update
+      ╎
+      ╎Some tests failed
+  - stderr should be empty
