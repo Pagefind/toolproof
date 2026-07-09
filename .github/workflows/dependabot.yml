@@ -15,7 +15,7 @@ jobs:
           application_private_key: ${{ secrets.PF_BOT_PEM }}
       - name: Dependabot metadata
         id: metadata
-        uses: dependabot/fetch-metadata@v2
+        uses: dependabot/fetch-metadata@v3
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
       - name: Approve PR if patch or minor
