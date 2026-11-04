@@ -41,8 +41,9 @@ For comprehensive browser testing documentation and examples, see [Browser Testi
 Instructions:
 - `In my browser, I load {url}` - Navigate to a URL
 - `In my browser, I evaluate {js}` - Execute JavaScript code
-- `In my browser, I screenshot the viewport to {filepath}` - Capture full viewport
+- `In my browser, I screenshot the viewport to {filepath}` - Capture the visible viewport, 3200x1800 pixels at the default 1600x900 size
 - `In my browser, I screenshot the element {selector} to {filepath}` - Capture specific element
+- `In my browser, I set the viewport to {size}` - Resize the viewport, with a size like `"390x844"`. The size carries over to pages loaded later in the same test, and each test starts at 1600x900
 - `In my browser, I click {text}` - Click element by visible text
 - `In my browser, I hover {text}` - Hover over element by visible text
 - `In my browser, I click the selector {selector}` - Click element by CSS selector

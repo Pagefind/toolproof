@@ -9,6 +9,8 @@
 
 ## Unreleased
 
+* Added an `In my browser, I set the viewport to {size}` step, which takes a size like `"390x844"`. The size applies to the open page and to every page loaded later in the same test. Each test still starts at the default 1600x900.
+
 ## v0.20.0 (July 7, 2026)
 
 * Added a summary for changed snapshots and failing tests in test outputs

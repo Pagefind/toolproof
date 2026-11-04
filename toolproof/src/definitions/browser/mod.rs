@@ -4,6 +4,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use chromiumoxide::cdp::browser_protocol::page::CaptureScreenshotParams;
 use chromiumoxide::cdp::browser_protocol::browser::BrowserContextId;
+use chromiumoxide::cdp::browser_protocol::emulation::SetDeviceMetricsOverrideParams;
 use chromiumoxide::cdp::browser_protocol::target::{
     CreateBrowserContextParams, CreateTargetParams,
 };
@@ -206,6 +207,23 @@ impl BrowserWindow {
                 .navigate(url, wait_for_load)
                 .await
                 .map_err(|inner| ToolproofStepError::Internal(inner.into())),
+        }
+    }
+
+    async fn set_viewport(&self, width: i64, height: i64) -> Result<(), ToolproofStepError> {
+        match self {
+            BrowserWindow::Chrome { page, .. } => page
+                .execute(SetDeviceMetricsOverrideParams::new(
+                    width, height, 2.0, false,
+                ))
+                .await
+                .map(|_| ())
+                .map_err(|e| ToolproofStepError::Internal(e.into())),
+            BrowserWindow::Pagebrowse(_) => Err(ToolproofStepError::Internal(
+                ToolproofInternalError::Custom {
+                    msg: "Setting the viewport not yet implemented for Pagebrowse".to_string(),
+                },
+            )),
         }
     }
 
@@ -630,9 +648,58 @@ mod load_page {
 
             let window = browser.get_window().await;
 
+            if let Some((width, height)) = civ.viewport {
+                window.set_viewport(width, height).await?;
+            }
+
             window.navigate(url.to_string(), true).await?;
 
             civ.window = Some(window);
+
+            Ok(())
+        }
+    }
+}
+
+mod set_viewport {
+    use super::*;
+
+    pub struct SetViewport;
+
+    inventory::submit! {
+        &SetViewport as &dyn ToolproofInstruction
+    }
+
+    fn parse_size(size: &str) -> Option<(i64, i64)> {
+        let (width, height) = size.trim().split_once('x')?;
+        let width = width.trim().parse::<i64>().ok()?;
+        let height = height.trim().parse::<i64>().ok()?;
+        (width > 0 && height > 0).then_some((width, height))
+    }
+
+    #[async_trait]
+    impl ToolproofInstruction for SetViewport {
+        fn segments(&self) -> &'static str {
+            "In my browser, I set the viewport to {size}"
+        }
+
+        async fn run(
+            &self,
+            args: &SegmentArgs<'_>,
+            civ: &mut Civilization,
+        ) -> Result<(), ToolproofStepError> {
+            let size = args.get_string("size")?;
+            let Some((width, height)) = parse_size(&size) else {
+                return Err(ToolproofStepError::External(ToolproofInputError::StepError {
+                    reason: format!("Viewport size should be a width and height like \"390x844\", found \"{size}\""),
+                }));
+            };
+
+            civ.viewport = Some((width, height));
+
+            if let Some(window) = civ.window.as_ref() {
+                window.set_viewport(width, height).await?;
+            }
 
             Ok(())
         }

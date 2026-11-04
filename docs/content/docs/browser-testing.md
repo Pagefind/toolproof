@@ -137,8 +137,29 @@ steps:
   - step: In my browser, I screenshot the element ".modal" to "modal-dialog.png"
 ```
 
+The viewport is 1600x900 at a device scale factor of 2, so a viewport screenshot
+is 3200x1800 pixels and covers only the visible area, not the full page. To capture
+at another size, see Setting the Viewport Size below.
+
 Toolproof doesn't include visual snapshot diffs, so these screenshots
 should be plugged into another tool if needed for regression testing.
+
+### Setting the Viewport Size
+
+The browser viewport is 1600x900 at a device scale factor of 2 unless you change it:
+
+```yml
+steps:
+  # Set the size before loading, or at any point after
+  - step: In my browser, I set the viewport to "390x844"
+  - step: In my browser, I load "/"
+  - step: In my browser, I screenshot the viewport to "phone.png"
+```
+
+The size applies straight away to the open page, so media queries and `resize`
+listeners update, and it carries over to every page loaded later in the same test.
+Each test starts at the default size. Screenshots keep the scale factor of 2,
+so a 390x844 viewport produces a 780x1688 image.
 
 ## JavaScript Execution
 
@@ -300,3 +321,5 @@ failure_screenshot_location: "./test-failures"
 ```
 
 When browser tests fail, Toolproof can automatically capture screenshots to help with debugging. Set `failure_screenshot_location` to enable this feature.
+
+The viewport size isn't a configuration option. Every test starts at 1600x900, and the `In my browser, I set the viewport to {size}` step changes it within a test.

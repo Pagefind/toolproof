@@ -35,6 +35,7 @@ pub async fn run_toolproof_experiment(
         last_command_output: None,
         assigned_server_port: None,
         window: None,
+        viewport: None,
         threads: vec![],
         handles: vec![],
         env_vars: HashMap::new(),
