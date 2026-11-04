@@ -30,6 +30,7 @@ pub struct Civilization<'u> {
     pub last_command_output: Option<CommandOutput>,
     pub assigned_server_port: Option<u16>,
     pub window: Option<BrowserWindow>,
+    pub viewport: Option<(i64, i64)>,
     pub threads: Vec<JoinHandle<Result<(), std::io::Error>>>,
     pub handles: Vec<ServerHandle>,
     pub env_vars: HashMap<String, String>,

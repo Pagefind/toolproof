@@ -57,6 +57,8 @@ All configuration options that can be set via command-line or environment variab
 | `retry_count` | Number | Number of times to retry failed tests before marking as failed |
 | `debugger` | Boolean | Run in debugger mode with step-by-step execution (requires single test) |
 
+The browser viewport size isn't configurable here. Every test starts at 1600x900, and the `In my browser, I set the viewport to {size}` step changes it within a test.
+
 ## Command Line Options
 
 Toolproof offers several command-line options to customize its behavior:

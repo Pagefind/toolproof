@@ -1,0 +1,55 @@
+name: Browser can set the viewport size
+
+steps:
+  - step: I have a "narrow.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Inner narrow viewport test
+
+      steps:
+        - I have a "public/index.html" file with the content "<p>Hello World</p>"
+        - I serve the directory "public"
+        - In my browser, I set the viewport to "390x844"
+        - In my browser, I load "/"
+        - step: In my browser, I evaluate {js}
+          js: |-
+            toolproof.assert_eq(window.innerWidth, 390);
+            toolproof.assert_eq(window.innerHeight, 844);
+            toolproof.assert_eq(window.devicePixelRatio, 2);
+            toolproof.assert(window.matchMedia("(width < 900px)").matches);
+        - In my browser, I load "/"
+        - step: In my browser, I evaluate {js}
+          js: |-
+            toolproof.assert_eq(window.innerWidth, 390);
+        - In my browser, I set the viewport to "1200x800"
+        - step: In my browser, I evaluate {js}
+          js: |-
+            toolproof.assert_eq(window.innerWidth, 1200);
+            toolproof.assert_eq(window.innerHeight, 800);
+  - step: I have a "default.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Inner default viewport test
+
+      steps:
+        - I have a "public/index.html" file with the content "<p>Hello World</p>"
+        - I serve the directory "public"
+        - In my browser, I load "/"
+        - step: In my browser, I evaluate {js}
+          js: |-
+            toolproof.assert_eq(window.innerWidth, 1600);
+            toolproof.assert_eq(window.innerHeight, 900);
+  - I run "%toolproof_path% --timeout 60"
+  - step: "stdout should contain 'Total passing tests: 2'"
+  - step: "stdout should contain 'Failing tests: 0'"
+  - step: "stdout should contain 'All tests passed'"
+  - stderr should be empty
+  - I run "rm narrow.toolproof.yml default.toolproof.yml"
+  - step: I have a "invalid.toolproof.yml" file with the content {yaml}
+    yaml: |-
+      name: Inner invalid viewport test
+
+      steps:
+        - In my browser, I set the viewport to "wide"
+  - I run "%toolproof_path% --timeout 60 --porcelain" and expect it to fail
+  - step: "stdout should contain 'Failing tests: 1'"
+  - step: stdout should contain {expected}
+    expected: Viewport size should be a width and height like "390x844", found "wide"
